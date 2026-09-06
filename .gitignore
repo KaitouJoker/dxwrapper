@@ -39,3 +39,5 @@ ipch/*
 .opendb
 *.opendb
 *.TMP
+Release/
+Release*.md
