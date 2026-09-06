@@ -16,8 +16,6 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include "d3dx9.h"
-#include "d3dx9_data_43.h"
-#include "d3dx9_data_47.h"
 #include <string>
 #include "External\MemoryModule\MemoryModule.h"
 #include "ComPtr.h"
@@ -29,7 +27,7 @@
 	PFN_ ## procName procName = nullptr;
 
 #define D3DX_LOAD_FUNCT(procName) \
-	procName = reinterpret_cast<PFN_ ## procName>(MemoryGetProcAddress(dll, #procName)); \
+	procName = reinterpret_cast<PFN_ ## procName>(GetProcAddress(dll, #procName)); \
 	if (!procName) Logging::Log() << __FUNCTION__ << " Error: failed to find d3dx9 '" << #procName << "' function!";
 
 VISIT_D3DX_MODULE_FUNCT(D3DX_DEFINE_FUNCT);
@@ -38,8 +36,8 @@ VISIT_D3DX_COMPILE_FUNCT(D3DX_DEFINE_FUNCT);
 typedef HRESULT(WINAPI* PFN_D3DXLoadSurfaceFromMemory)(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPCVOID pSrcMemory, D3DFORMAT SrcFormat, UINT SrcPitch, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey);
 typedef HRESULT(WINAPI* PFN_D3DXLoadSurfaceFromSurface)(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPDIRECT3DSURFACE9 pSrcSurface, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey);
 
-HMEMORYMODULE d3dx9Module = nullptr;
-HMEMORYMODULE d3dCompileModule = nullptr;
+HMODULE d3dx9Module = nullptr;
+HMODULE d3dCompileModule = nullptr;
 
 PFN_D3DXLoadSurfaceFromMemory p_D3DXLoadSurfaceFromMemory = nullptr;
 PFN_D3DXLoadSurfaceFromSurface p_D3DXLoadSurfaceFromSurface = nullptr;
@@ -57,26 +55,26 @@ void LoadD3dx9()
 	}
 	RunOnce = false;
 
-	Logging::Log() << "Loading d3dx9 libraries";
+	Logging::Log() << "Loading system d3dx9 libraries";
 
-	d3dx9Module = Utils::LoadMemoryToDLL((LPVOID)D3DX9_43, sizeof(D3DX9_43));
-#if (_WIN32_WINNT >= 0x0502)
-	d3dCompileModule = Utils::LoadMemoryToDLL((LPVOID)D3DCompiler_47, sizeof(D3DCompiler_47));
-#else
-	d3dCompileModule = Utils::LoadMemoryToDLL((LPVOID)D3DCompiler_43, sizeof(D3DCompiler_43));
-#endif
+	d3dx9Module = LoadLibraryA("d3dx9_43.dll");
+	d3dCompileModule = LoadLibraryA("d3dcompiler_47.dll");
+	if (!d3dCompileModule)
+	{
+		d3dCompileModule = LoadLibraryA("d3dcompiler_43.dll");
+	}
 
 	if (d3dx9Module)
 	{
-		const HMEMORYMODULE dll = d3dx9Module;
+		const HMODULE dll = d3dx9Module;
 
-		p_D3DXLoadSurfaceFromMemory = reinterpret_cast<PFN_D3DXLoadSurfaceFromMemory>(MemoryGetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromMemory"));
+		p_D3DXLoadSurfaceFromMemory = reinterpret_cast<PFN_D3DXLoadSurfaceFromMemory>(GetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromMemory"));
 		if (!p_D3DXLoadSurfaceFromMemory)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: failed to find d3dx9 'D3DXLoadSurfaceFromMemory' function!";
 		}
 
-		p_D3DXLoadSurfaceFromSurface = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(MemoryGetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromSurface"));
+		p_D3DXLoadSurfaceFromSurface = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(GetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromSurface"));
 		if (!p_D3DXLoadSurfaceFromSurface)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: failed to find d3dx9 'D3DXLoadSurfaceFromSurface' function!";
@@ -90,7 +88,7 @@ void LoadD3dx9()
 	}
 	if (d3dCompileModule)
 	{
-		const HMEMORYMODULE dll = d3dCompileModule;
+		const HMODULE dll = d3dCompileModule;
 
 		VISIT_D3DX_COMPILE_FUNCT(D3DX_LOAD_FUNCT);
 	}
