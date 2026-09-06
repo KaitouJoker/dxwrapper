@@ -579,6 +579,19 @@ FARPROC Utils::SleepEx_out = nullptr;
 typedef void(WINAPI* SleepProc)(DWORD dwMilliseconds);
 typedef DWORD(WINAPI* SleepExProc)(DWORD dwMilliseconds, BOOL bAlertable);
 
+void Utils::RealSleep(DWORD dwMilliseconds)
+{
+	SleepProc realSleep = reinterpret_cast<SleepProc>(Sleep_out);
+	if (realSleep)
+	{
+		realSleep(dwMilliseconds);
+	}
+	else
+	{
+		::Sleep(dwMilliseconds);
+	}
+}
+
 void WINAPI Utils::kernel_Sleep(DWORD dwMilliseconds)
 {
 	if (Config.DisableDynamicSleep)

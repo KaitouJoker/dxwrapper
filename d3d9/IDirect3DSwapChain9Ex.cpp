@@ -86,7 +86,14 @@ HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RE
 		pDirtyRegion = nullptr;
 	}
 
-	return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+
+	if (SUCCEEDED(hr) && m_pDeviceEx)
+	{
+		m_pDeviceEx->ApplyPostPresentFixes();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DSwapChain9Ex::GetFrontBufferData(THIS_ IDirect3DSurface9* pDestSurface)

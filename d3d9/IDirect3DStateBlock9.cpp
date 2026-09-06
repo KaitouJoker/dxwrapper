@@ -136,5 +136,25 @@ HRESULT m_IDirect3DStateBlock9::Apply(THIS)
 		return D3DERR_INVALIDCALL;
 	}
 
-	return ProxyInterface->Apply();
+	HRESULT hr = ProxyInterface->Apply();
+
+	if (SUCCEEDED(hr) && Config.AnisotropicFiltering && m_pDeviceEx)
+	{
+		DWORD maxAniso = m_pDeviceEx->GetMaxAnisotropy();
+		if (maxAniso)
+		{
+			LPDIRECT3DDEVICE9 pDev = m_pDeviceEx->GetProxyInterface();
+			if (pDev)
+			{
+				for (DWORD x = 0; x < 8; x++)
+				{
+					pDev->SetSamplerState(x, D3DSAMP_MAXANISOTROPY, maxAniso);
+					pDev->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+					pDev->SetSamplerState(x, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+				}
+			}
+		}
+	}
+
+	return hr;
 }

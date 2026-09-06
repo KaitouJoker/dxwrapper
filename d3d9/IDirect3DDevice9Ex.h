@@ -136,7 +136,6 @@ private:
 	void ApplyPreDrawFixes();
 	void ApplyPostDrawFixes();
 	void ApplyPrePresentFixes();
-	void ApplyPostPresentFixes();
 
 	void ApplyClipPlanes();
 
@@ -372,6 +371,8 @@ public:
 
 	// Information functions
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
+	DWORD GetMaxAnisotropy() const { return MaxAnisotropy; }
+	void ApplyPostPresentFixes();
 	void InitInterface(void*, REFIID, UINT) {}	// Stub only
 	AddressLookupTableD3d9* GetLookupTable() { return &ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() { return &StateBlockTable; }

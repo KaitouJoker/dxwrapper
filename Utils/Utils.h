@@ -55,6 +55,7 @@ namespace Utils
 	HANDLE WINAPI kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
 	extern FARPROC Sleep_out;
 	extern FARPROC SleepEx_out;
+	void RealSleep(DWORD dwMilliseconds);
 	void WINAPI kernel_Sleep(DWORD dwMilliseconds);
 	DWORD WINAPI kernel_SleepEx(DWORD dwMilliseconds, BOOL bAlertable);
 	void OptimizeRenderThread();

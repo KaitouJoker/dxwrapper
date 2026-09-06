@@ -634,7 +634,9 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 
 	// Only safe for default/managed pool, non-render-target/non-depth-stencil textures
 	bool ForceMipMaps = false;
-	if (Config.ForceMipMapUsage && (Pool == D3DPOOL_DEFAULT || Pool == D3DPOOL_MANAGED) && !(Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)) && Levels == 1)
+	const UINT origLevels = Levels;
+	const DWORD origUsage = Usage;
+	if ((Config.ForceMipMapUsage || Config.AnisotropicFiltering) && (Pool == D3DPOOL_DEFAULT || Pool == D3DPOOL_MANAGED) && !(Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)) && Levels == 1)
 	{
 		ForceMipMaps = true;
 		Levels = 0;
@@ -648,6 +650,14 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 	}
 
 	HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
+
+	if (FAILED(hr) && ForceMipMaps)
+	{
+		ForceMipMaps = false;
+		Levels = origLevels;
+		Usage = origUsage;
+		hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
+	}
 
 	if (SUCCEEDED(hr) && ppTexture)
 	{
@@ -1569,6 +1579,19 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9* pTe
 			IsUsingForcedMipMapTexture = isForcedMipMapTexture;
 			pCurrentTexture = pTexture;
 		}
+
+		if (Config.AnisotropicFiltering && MaxAnisotropy && Stage < D3DHAL_TSS_MAXSTAGES && pTexture)
+		{
+			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
+			if (AnisotropyMin)
+			{
+				ProxyInterface->SetSamplerState(Stage, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+			}
+			if (LinearMip)
+			{
+				ProxyInterface->SetSamplerState(Stage, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+			}
+		}
 	}
 
 	return hr;
@@ -1584,6 +1607,27 @@ HRESULT m_IDirect3DDevice9Ex::GetTextureStageState(DWORD Stage, D3DTEXTURESTAGES
 HRESULT m_IDirect3DDevice9Ex::SetTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") Stage: " << Stage << " Type: " << Type << " Value: " << Value;
+
+	if (Config.AnisotropicFiltering && MaxAnisotropy && Stage < D3DHAL_TSS_MAXSTAGES)
+	{
+		// D3DTSS_MAGFILTER = 16, D3DTSS_MINFILTER = 17, D3DTSS_MIPFILTER = 18, D3DTSS_MAXANISOTROPY = 21 (legacy D3D8 / D3D9 TSS)
+		if ((DWORD)Type == 17 /* D3DTSS_MINFILTER */ && Value != D3DTEXF_NONE)
+		{
+			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
+			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+			return D3D_OK;
+		}
+		else if ((DWORD)Type == 18 /* D3DTSS_MIPFILTER */ && Value != D3DTEXF_NONE)
+		{
+			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+			return D3D_OK;
+		}
+		else if ((DWORD)Type == 21 /* D3DTSS_MAXANISOTROPY */)
+		{
+			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
+			return D3D_OK;
+		}
+	}
 
 	HRESULT hr = ProxyInterface->SetTextureStageState(Stage, Type, Value);
 
@@ -1650,17 +1694,19 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	{
 		if (Type == D3DSAMP_MAXANISOTROPY)
 		{
-			return D3D_OK;
+			return ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
 		}
 		else if (AnisotropyMin && Type == D3DSAMP_MINFILTER && Value != D3DTEXF_NONE)
 		{
 			LOG_ONCE("Setting Anisotropic Min Filtering at " << MaxAnisotropy << "x");
+			ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
 			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC);
 		}
 		// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
 		else if (AnisotropyMag && Type == D3DSAMP_MAGFILTER && Value != D3DTEXF_NONE && Value != D3DTEXF_POINT)
 		{
 			LOG_ONCE("Setting Anisotropic Mag Filtering at " << MaxAnisotropy << "x");
+			ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
 			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC);
 		}
 		else if (LinearMip && Type == D3DSAMP_MIPFILTER && Value != D3DTEXF_NONE)
@@ -2758,7 +2804,7 @@ void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
 		}
 	}
 
-	if (Config.LimitPerFrameFPS)
+	if (Config.LimitPerFrameFPS > 0.0f)
 	{
 		LimitFrameRate();
 	}
@@ -2828,6 +2874,11 @@ bool m_IDirect3DDevice9Ex::UsingShadowBackBuffer(DWORD iSwapChain) const
 
 void m_IDirect3DDevice9Ex::LimitFrameRate()
 {
+	if (Config.LimitPerFrameFPS <= 0.0f)
+	{
+		return;
+	}
+
 	// Count the number of frames
 	Counter.FrameCounter++;
 
@@ -2837,26 +2888,36 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 		QueryPerformanceFrequency(&freq);
 		return freq;
 		}();
-	static const LONGLONG TicksPerMS = Frequency.QuadPart / 1000;
+	static const LONGLONG TicksPerMS = (Frequency.QuadPart > 0) ? (Frequency.QuadPart / 1000) : 1;
 
-	// Calculate time per frame in ticks
-	static long double PerFrameFPS = Config.LimitPerFrameFPS;
-	static LONGLONG PerFrameTicks = static_cast<LONGLONG>(static_cast<long double>(Frequency.QuadPart) / PerFrameFPS);
+	// Calculate time per frame in ticks dynamically without static freeze
+	const LONGLONG PerFrameTicks = static_cast<LONGLONG>(static_cast<double>(Frequency.QuadPart) / static_cast<double>(Config.LimitPerFrameFPS));
+	if (PerFrameTicks <= 0)
+	{
+		return;
+	}
 
 	// Get current time
 	LARGE_INTEGER ClickTime = {};
 	QueryPerformanceCounter(&ClickTime);
 
-	LONGLONG TargetEndTicks = Counter.LastPresentTime.QuadPart + PerFrameTicks;
-
-	// First frame or if we fell behind, reset base time
-	if (Counter.LastPresentTime.QuadPart == 0 || ClickTime.QuadPart >= TargetEndTicks)
+	// First frame: establish baseline
+	if (Counter.LastPresentTime.QuadPart == 0)
 	{
 		Counter.LastPresentTime.QuadPart = ClickTime.QuadPart;
 		return;
 	}
 
-	// Wait until target time
+	LONGLONG TargetEndTicks = Counter.LastPresentTime.QuadPart + PerFrameTicks;
+
+	// If we fell behind, reset base time to current time
+	if (ClickTime.QuadPart >= TargetEndTicks)
+	{
+		Counter.LastPresentTime.QuadPart = ClickTime.QuadPart;
+		return;
+	}
+
+	// Precision wait until target time
 	while (true)
 	{
 		QueryPerformanceCounter(&ClickTime);
@@ -2864,8 +2925,15 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 
 		if (RemainingTicks <= 0) break;
 
-		// Busy wait until we reach the target time
-		Utils::BusyWaitYield(static_cast<DWORD>(RemainingTicks / TicksPerMS));
+		LONGLONG RemainingMS = RemainingTicks / TicksPerMS;
+		if (RemainingMS >= 2)
+		{
+			Utils::RealSleep(1);
+		}
+		else
+		{
+			YieldProcessor();
+		}
 	}
 
 	// Store target time for next frame
@@ -3609,6 +3677,10 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 				if (AnisotropyMin)
 				{
 					ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+				}
+				if (LinearMip)
+				{
+					ProxyInterface->SetSamplerState(x, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
 				}
 			}
 		}
