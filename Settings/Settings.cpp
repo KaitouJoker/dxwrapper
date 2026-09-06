@@ -530,7 +530,7 @@ void Settings::SetDefaultConfigSettings()
 {
 	// Set value to check if it exists in the ini file
 	Config.EnableD3d9Wrapper = 1;
-	Config.D3d9to9Ex = 1;
+	Config.D3d9to9Ex = 0;
 	Config.FlipEx = 1;
 	Config.DisableLogging = 1;
 	Config.DisableDynamicSleep = 1;

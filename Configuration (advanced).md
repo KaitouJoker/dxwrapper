@@ -132,7 +132,7 @@
 - **카트라이더 및 권장 설정**: `0` (카트라이더는 D3D9 네이티브이므로 0)
 
 ### D3d9to9Ex
-- **기본값 (`d3d9.ini`)**: `1`
+- **기본값 (`d3d9.ini`)**: `0`
 - **설정 데이터 타입**: 부울 (Boolean, 0 또는 1)
 - **개요**: Direct3D 9 호출을 Direct3D 9Ex(D3D9Ex) 인터페이스로 강제 승격합니다.
 - **동작 원리 및 상세 분석**:
@@ -1152,7 +1152,7 @@
 | `[Plugins]` | **loadfromscriptsonly** | `0` | 부울 | ASI 플러그인 로드 위치를 scripts/plugins 하위 폴더로 제한합니다. |
 | `[Compatibility]` | **dd7to9** | `0` | 부울 | DirectDraw (DirectX 1~7) 호출을 Direct3D 9으로 변환합니다. |
 | `[Compatibility]` | **d3d8to9** | `0` | 부울 | Direct3D 8 API 호출을 Direct3D 9으로 변환합니다. |
-| `[Compatibility]` | **d3d9to9ex** | `1` | 부울 | Direct3D 9 호출을 Direct3D 9Ex(D3D9Ex) 인터페이스로 강제 승격합니다. |
+| `[Compatibility]` | **d3d9to9ex** | `0` | 부울 | Direct3D 9 호출을 Direct3D 9Ex(D3D9Ex) 인터페이스로 강제 승격합니다. |
 | `[Compatibility]` | **d3d9on12** | `0` | 부울 | Microsoft D3D9On12 매핑 계층을 활성화하여 DirectX 12 위에서 D3D9을 구동합니다. |
 | `[Compatibility]` | **ddrawcompat** | `0` | 부울 | narzoul의 DDrawCompat 호환성 라이브러리를 활성화합니다. |
 | `[Compatibility]` | **dinputto8** | `0` | 부울 | DirectInput (1~7) 호출을 DirectInput 8로 변환합니다. |
