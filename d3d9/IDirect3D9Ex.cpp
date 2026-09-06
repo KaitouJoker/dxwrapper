@@ -1032,9 +1032,9 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd, bool IsDirectDrawDevice, bool 
 		ShowWindow(hWnd, SW_RESTORE);
 	}
 
-	// Only change z-order if currently topmost or not in foreground
+	// Only change z-order if currently topmost (except in exclusive fullscreen) or not in foreground
 	bool isWindowTopMost = (lExStyle & WS_EX_TOPMOST);
-	bool needsZOrderChange = isWindowTopMost ||
+	bool needsZOrderChange = (isWindowTopMost && !IsExclusive) ||
 		((IsExclusive || Config.EnableWindowMode) && hWnd != GetForegroundWindow());
 
 	// Only call if something actually changed
@@ -1046,7 +1046,7 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd, bool IsDirectDrawDevice, bool 
 
 		SetWindowPos(
 			hWnd,
-			(isWindowTopMost ? HWND_NOTOPMOST : HWND_TOP),
+			(isWindowTopMost ? (IsExclusive ? HWND_TOPMOST : HWND_NOTOPMOST) : HWND_TOP),
 			0,
 			0,
 			0,

@@ -540,7 +540,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.SpinWaitPacing = 1;
 	Config.BypassFpuReset = 1;
 	Config.RenderThreadAffinity = 0;
-	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = 1;
+	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = 0;
 	Config.DdrawHookSystem32 = NOT_EXIST;
 	Config.D3d8HookSystem32 = NOT_EXIST;
 	Config.DinputHookSystem32 = NOT_EXIST;
@@ -661,6 +661,19 @@ void CONFIG::Init()
 		szCfg = ReadFileContent(configpath);
 
 		// Parce config file
+		if (szCfg)
+		{
+			ConfigLoaded = true;
+			Parse(szCfg, ParseCallback);
+			free(szCfg);
+		}
+	}
+
+	// Fallback to dxwrapper.ini if specific ini not found
+	if (!ConfigLoaded && strrchr(configpath, '\\'))
+	{
+		strcpy_s(strrchr(configpath, '\\') + 1, MAX_PATH - (strrchr(configpath, '\\') - configpath + 1), "dxwrapper.ini");
+		szCfg = ReadFileContent(configpath);
 		if (szCfg)
 		{
 			ConfigLoaded = true;
