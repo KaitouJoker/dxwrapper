@@ -146,11 +146,16 @@ HRESULT m_IDirect3DStateBlock9::Apply(THIS)
 			LPDIRECT3DDEVICE9 pDev = m_pDeviceEx->GetProxyInterface();
 			if (pDev)
 			{
+				const float lodBias = -0.75f;
+				const DWORD dwLodBias = *(const DWORD*)&lodBias;
+
 				for (DWORD x = 0; x < 8; x++)
 				{
 					pDev->SetSamplerState(x, D3DSAMP_MAXANISOTROPY, maxAniso);
 					pDev->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+					pDev->SetSamplerState(x, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
 					pDev->SetSamplerState(x, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+					pDev->SetSamplerState(x, D3DSAMP_MIPMAPLODBIAS, dwLodBias);
 				}
 			}
 		}

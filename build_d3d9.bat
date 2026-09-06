@@ -22,7 +22,7 @@ set VSPATH=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Aux
 if exist "%VSPATH%" goto found_vs
 
 echo [ERROR] Visual Studio C++ x86 compiler (vcvars32.bat) not found!
-pause
+if "%~1"=="" pause
 exit /b 1
 
 :found_vs
@@ -31,7 +31,7 @@ echo Using: %VSPATH%
 call "%VSPATH%"
 if errorlevel 1 (
     echo [ERROR] Failed to initialize MSVC environment.
-    pause
+    if "%~1"=="" pause
     exit /b 1
 )
 
@@ -40,7 +40,7 @@ msbuild dxwrapper_d3d9.vcxproj /p:Configuration=Release /p:Platform=Win32 /m /no
 if errorlevel 1 (
     echo.
     echo [ERROR] Build failed! Check compiler errors above.
-    pause
+    if "%~1"=="" pause
     exit /b 1
 )
 
@@ -55,7 +55,7 @@ if exist "Release\d3d9.dll" (
     echo.
 ) else (
     echo [ERROR] Release\d3d9.dll was not generated.
-    pause
+    if "%~1"=="" pause
     exit /b 1
 )
 

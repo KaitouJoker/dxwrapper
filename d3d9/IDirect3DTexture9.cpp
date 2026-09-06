@@ -249,7 +249,18 @@ HRESULT m_IDirect3DTexture9::UnlockRect(THIS_ UINT Level)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->UnlockRect(Level);
+	HRESULT hr = ProxyInterface->UnlockRect(Level);
+
+	if (SUCCEEDED(hr) && Level == 0 && (IsForcingMipMaps || Config.AnisotropicFiltering) && ProxyInterface && ProxyInterface->GetLevelCount() > 1)
+	{
+		LoadD3dx9();
+		if (D3DXFilterTexture)
+		{
+			D3DXFilterTexture(ProxyInterface, nullptr, 0, D3DX_DEFAULT);
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DTexture9::AddDirtyRect(THIS_ CONST RECT* pDirtyRect)

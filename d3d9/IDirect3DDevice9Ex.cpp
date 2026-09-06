@@ -636,11 +636,14 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 	bool ForceMipMaps = false;
 	const UINT origLevels = Levels;
 	const DWORD origUsage = Usage;
-	if ((Config.ForceMipMapUsage || Config.AnisotropicFiltering) && (Pool == D3DPOOL_DEFAULT || Pool == D3DPOOL_MANAGED) && !(Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)) && Levels == 1)
+	if ((Config.ForceMipMapUsage || Config.AnisotropicFiltering) && (Pool == D3DPOOL_DEFAULT || Pool == D3DPOOL_MANAGED) && !(Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL | D3DUSAGE_DYNAMIC)) && Levels == 1)
 	{
 		ForceMipMaps = true;
 		Levels = 0;
-		Usage |= D3DUSAGE_AUTOGENMIPMAP;
+		if (Pool == D3DPOOL_DEFAULT)
+		{
+			Usage |= D3DUSAGE_AUTOGENMIPMAP;
+		}
 	}
 
 	if (IsForcingD3d9to9Ex() && Pool == D3DPOOL_MANAGED && !(Usage & (D3DUSAGE_DYNAMIC | D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)))
@@ -1582,15 +1585,23 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9* pTe
 
 		if (Config.AnisotropicFiltering && MaxAnisotropy && Stage < D3DHAL_TSS_MAXSTAGES && pTexture)
 		{
+			const float lodBias = -0.75f;
+			const DWORD dwLodBias = *(const DWORD*)&lodBias;
+
 			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
 			if (AnisotropyMin)
 			{
 				ProxyInterface->SetSamplerState(Stage, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
 			}
+			if (AnisotropyMag)
+			{
+				ProxyInterface->SetSamplerState(Stage, D3DSAMP_MAGFILTER, D3DTEXF_ANISOTROPIC);
+			}
 			if (LinearMip)
 			{
 				ProxyInterface->SetSamplerState(Stage, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
 			}
+			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MIPMAPLODBIAS, dwLodBias);
 		}
 	}
 
@@ -1611,15 +1622,21 @@ HRESULT m_IDirect3DDevice9Ex::SetTextureStageState(DWORD Stage, D3DTEXTURESTAGES
 	if (Config.AnisotropicFiltering && MaxAnisotropy && Stage < D3DHAL_TSS_MAXSTAGES)
 	{
 		// D3DTSS_MAGFILTER = 16, D3DTSS_MINFILTER = 17, D3DTSS_MIPFILTER = 18, D3DTSS_MAXANISOTROPY = 21 (legacy D3D8 / D3D9 TSS)
-		if ((DWORD)Type == 17 /* D3DTSS_MINFILTER */ && Value != D3DTEXF_NONE)
+		if ((DWORD)Type == 17 /* D3DTSS_MINFILTER */)
 		{
 			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
 			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
 			return D3D_OK;
 		}
-		else if ((DWORD)Type == 18 /* D3DTSS_MIPFILTER */ && Value != D3DTEXF_NONE)
+		else if ((DWORD)Type == 16 /* D3DTSS_MAGFILTER */)
 		{
-			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
+			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MAGFILTER, AnisotropyMag ? D3DTEXF_ANISOTROPIC : D3DTEXF_LINEAR);
+			return D3D_OK;
+		}
+		else if ((DWORD)Type == 18 /* D3DTSS_MIPFILTER */)
+		{
+			ProxyInterface->SetSamplerState(Stage, D3DSAMP_MIPFILTER, LinearMip ? D3DTEXF_LINEAR : D3DTEXF_POINT);
 			return D3D_OK;
 		}
 		else if ((DWORD)Type == 21 /* D3DTSS_MAXANISOTROPY */)
@@ -1690,28 +1707,32 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	}
 
 	// Enable Anisotropic Filtering
-	if (MaxAnisotropy)
+	if (Config.AnisotropicFiltering && MaxAnisotropy)
 	{
 		if (Type == D3DSAMP_MAXANISOTROPY)
 		{
 			return ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
 		}
-		else if (AnisotropyMin && Type == D3DSAMP_MINFILTER && Value != D3DTEXF_NONE)
+		else if (Type == D3DSAMP_MINFILTER)
 		{
 			LOG_ONCE("Setting Anisotropic Min Filtering at " << MaxAnisotropy << "x");
 			ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
 			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC);
 		}
-		// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
-		else if (AnisotropyMag && Type == D3DSAMP_MAGFILTER && Value != D3DTEXF_NONE && Value != D3DTEXF_POINT)
+		else if (Type == D3DSAMP_MAGFILTER)
 		{
 			LOG_ONCE("Setting Anisotropic Mag Filtering at " << MaxAnisotropy << "x");
 			ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
-			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC);
+			return ProxyInterface->SetSamplerState(Sampler, Type, AnisotropyMag ? D3DTEXF_ANISOTROPIC : D3DTEXF_LINEAR);
 		}
-		else if (LinearMip && Type == D3DSAMP_MIPFILTER && Value != D3DTEXF_NONE)
+		else if (Type == D3DSAMP_MIPFILTER)
 		{
-			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_LINEAR);
+			return ProxyInterface->SetSamplerState(Sampler, Type, LinearMip ? D3DTEXF_LINEAR : D3DTEXF_POINT);
+		}
+		else if (Type == D3DSAMP_MIPMAPLODBIAS)
+		{
+			const float lodBias = -0.75f;
+			return ProxyInterface->SetSamplerState(Sampler, Type, *(const DWORD*)&lodBias);
 		}
 	}
 
@@ -2604,7 +2625,30 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 	}
 
 	// Handle forced MipMap usage
-	if (IsUsingForcedMipMapTexture)
+	if (Config.AnisotropicFiltering && MaxAnisotropy)
+	{
+		const float lodBias = -0.75f;
+		const DWORD dwLodBias = *(const DWORD*)&lodBias;
+
+		for (DWORD s = 0; s < D3DHAL_TSS_MAXSTAGES; s++)
+		{
+			ProxyInterface->SetSamplerState(s, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
+			if (AnisotropyMin)
+			{
+				ProxyInterface->SetSamplerState(s, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+			}
+			if (AnisotropyMag)
+			{
+				ProxyInterface->SetSamplerState(s, D3DSAMP_MAGFILTER, D3DTEXF_ANISOTROPIC);
+			}
+			if (LinearMip)
+			{
+				ProxyInterface->SetSamplerState(s, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+			}
+			ProxyInterface->SetSamplerState(s, D3DSAMP_MIPMAPLODBIAS, dwLodBias);
+		}
+	}
+	else if (IsUsingForcedMipMapTexture)
 	{
 		GetSamplerState(0, D3DSAMP_MIPFILTER, &ssMipFilter);
 		if (ssMipFilter == D3DTEXF_NONE)
@@ -2669,7 +2713,7 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 void m_IDirect3DDevice9Ex::ApplyPostDrawFixes()
 {
 	// Handle forced MipMap usage
-	if (IsUsingForcedMipMapTexture && ssMipFilter == D3DTEXF_NONE)
+	if (!Config.AnisotropicFiltering && IsUsingForcedMipMapTexture && ssMipFilter == D3DTEXF_NONE)
 	{
 		SetSamplerState(0, D3DSAMP_MIPFILTER, ssMipFilter);
 	}
@@ -3661,27 +3705,35 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 	// Set Max Anisotropy and Anisotropic Filtering
 	if (Config.AnisotropicFiltering)
 	{
-		MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
-		AnisotropyMin = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC);
+		DWORD devMaxAniso = (Caps.MaxAnisotropy > 1) ? Caps.MaxAnisotropy : 16;
+		MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? devMaxAniso : min((DWORD)Config.AnisotropicFiltering, devMaxAniso);
+		AnisotropyMin = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC) || (Caps.MaxAnisotropy > 1);
 		AnisotropyMag = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC);
-		LinearMip = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MIPFLINEAR);
-		LOG_ONCE("Anisotropic Filtering DeviceCaps. Min: " << AnisotropyMin << " Mag: " << AnisotropyMag << " LinearMap: " << LinearMip);
+		LinearMip = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MIPFLINEAR) || true;
+		LOG_ONCE("Anisotropic Filtering DeviceCaps. Min: " << AnisotropyMin << " Mag: " << AnisotropyMag << " LinearMap: " << LinearMip << " MaxAniso: " << MaxAnisotropy);
 
-		if (MaxAnisotropy && (AnisotropyMin || AnisotropyMag))
+		if (MaxAnisotropy)
 		{
+			const float lodBias = -0.75f;
+			const DWORD dwLodBias = *(const DWORD*)&lodBias;
+
 			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 			{
 				ProxyInterface->SetSamplerState(x, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
 
-				// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
 				if (AnisotropyMin)
 				{
 					ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+				}
+				if (AnisotropyMag)
+				{
+					ProxyInterface->SetSamplerState(x, D3DSAMP_MAGFILTER, D3DTEXF_ANISOTROPIC);
 				}
 				if (LinearMip)
 				{
 					ProxyInterface->SetSamplerState(x, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
 				}
+				ProxyInterface->SetSamplerState(x, D3DSAMP_MIPMAPLODBIAS, dwLodBias);
 			}
 		}
 	}

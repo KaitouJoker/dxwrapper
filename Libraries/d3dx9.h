@@ -507,6 +507,26 @@ inline D3DMATRIX MatrixMultiply(const D3DMATRIX& A, const D3DMATRIX& B)
 		A._41 * B._14 + A._42 * B._24 + A._43 * B._34 + A._44 * B._44);
 }
 
+#ifndef D3DX_DEFAULT
+#define D3DX_DEFAULT ((UINT) -1)
+#endif
+#ifndef D3DX_DEFAULT_NONPOW2
+#define D3DX_DEFAULT_NONPOW2 ((UINT) -2)
+#endif
+#ifndef D3DX_DEFAULT_FLOAT
+#define D3DX_DEFAULT_FLOAT ((FLOAT) -1.0f)
+#endif
+#ifndef D3DX_FROM_FILE
+#define D3DX_FROM_FILE ((UINT) -3)
+#endif
+#ifndef D3DX_FILTER_NONE
+#define D3DX_FILTER_NONE (1 << 0)
+#define D3DX_FILTER_POINT (2 << 0)
+#define D3DX_FILTER_LINEAR (3 << 0)
+#define D3DX_FILTER_TRIANGLE (4 << 0)
+#define D3DX_FILTER_BOX (5 << 0)
+#endif
+
 // Defined functions
 HRESULT WINAPI D3DXLoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPCVOID pSrcMemory, D3DFORMAT SrcFormat, UINT SrcPitch, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey);
 HRESULT WINAPI D3DXLoadSurfaceFromSurface(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPDIRECT3DSURFACE9 pSrcSurface, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey);
@@ -531,6 +551,7 @@ typedef D3DXVECTOR3* (WINAPI* PFN_D3DXVec3Normalize)(_Inout_ D3DXVECTOR3* pOut, 
 typedef D3DXVECTOR3* (WINAPI* PFN_D3DXVec3TransformCoord)(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM);
 typedef D3DXVECTOR3* (WINAPI* PFN_D3DXVec3TransformNormal)(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM);
 typedef D3DXVECTOR4* (WINAPI* PFN_D3DXVec4Transform)(_Inout_ D3DXVECTOR4* pOut, _In_ const D3DXVECTOR4* pV, _In_ const D3DXMATRIX* pM);
+typedef HRESULT(WINAPI* PFN_D3DXFilterTexture)(LPDIRECT3DBASETEXTURE9 pBaseTexture, const PALETTEENTRY* pPalette, UINT SrcLevel, DWORD MipFilter);
 
 // D3DX compile functions
 typedef HRESULT(WINAPI* PFN_D3DAssemble)(const void* pSrcData, SIZE_T SrcDataSize, const char* pFileName, const D3D_SHADER_MACRO* pDefines, ID3DInclude* pInclude, UINT Flags, ID3DBlob** ppShader, ID3DBlob** ppErrorMsgs);
@@ -539,6 +560,7 @@ typedef HRESULT(WINAPI* PFN_D3DDisassemble)(LPCVOID pSrcData, SIZE_T SrcDataSize
 
 #define VISIT_D3DX_MODULE_FUNCT(visit) \
 	visit(D3DXCreateTexture) \
+	visit(D3DXFilterTexture) \
 	visit(D3DXCreateFontA) \
 	visit(D3DXCreateFontW) \
 	visit(D3DXCreateSprite) \
