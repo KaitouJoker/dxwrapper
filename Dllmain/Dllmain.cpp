@@ -90,6 +90,32 @@ __declspec(dllexport) void WINAPI DxWrapperLogging(const char* LogMessage)
 	Logging::Log() << __FUNCTION__ << " " << LogMessage;
 }
 
+typedef LONG(NTAPI* pfnNtSetTimerResolution)(ULONG DesiredResolution, BOOLEAN SetResolution, PULONG CurrentResolution);
+static void SetHighResolutionTimer()
+{
+	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+	if (ntdll)
+	{
+		pfnNtSetTimerResolution NtSetTimerResolution = (pfnNtSetTimerResolution)GetProcAddress(ntdll, "NtSetTimerResolution");
+		if (NtSetTimerResolution)
+		{
+			ULONG curRes = 0;
+			// 5000 x 100ns = 0.500ms
+			if (NtSetTimerResolution(5000, TRUE, &curRes) >= 0)
+			{
+				Logging::Log() << "Successfully set NT timer resolution to 0.5ms (current: " << curRes << " x 100ns)";
+			}
+		}
+	}
+	timeBeginPeriod(1);
+}
+
+static void OptimizeProcessPriority()
+{
+	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+}
+
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 
 static HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
@@ -676,7 +702,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Set timer
 		if (!DDrawCompatEnabed)
 		{
-			timeBeginPeriod(1);
+			SetHighResolutionTimer();
+			OptimizeProcessPriority();
 		}
 
 #ifdef DDRAWCOMPAT

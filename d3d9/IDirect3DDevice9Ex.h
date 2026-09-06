@@ -184,6 +184,10 @@ public:
 		{
 			ProxyInterfaceEx = pDevice;
 		}
+		else if (pDevice)
+		{
+			pDevice->QueryInterface(IID_IDirect3DDevice9Ex, (void**)&ProxyInterfaceEx);
+		}
 
 		D3d9Wrapper::TestAllDeviceRefs(ProxyInterface, dref);
 

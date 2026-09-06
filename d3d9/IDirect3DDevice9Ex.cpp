@@ -3480,6 +3480,21 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		LOG_LIMIT(3, __FUNCTION__ << " Warning: Creating non-Ex interface when using D3d9to9Ex!");
 	}
 
+	// Optimize latency: clamp maximum queued frame latency to 1 and boost GPU scheduling priority
+	if (ProxyInterfaceEx)
+	{
+		HRESULT hrLat = ProxyInterfaceEx->SetMaximumFrameLatency(1);
+		if (SUCCEEDED(hrLat))
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Successfully set SetMaximumFrameLatency(1)");
+		}
+		HRESULT hrPrio = ProxyInterfaceEx->SetGPUThreadPriority(7);
+		if (SUCCEEDED(hrPrio))
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Successfully set SetGPUThreadPriority(7)");
+		}
+	}
+
 	Utils::GetScreenSize(DeviceDetails.hMonitor, DeviceDetails.screenWidth, DeviceDetails.screenHeight);
 
 	IsGammaSet = false;
