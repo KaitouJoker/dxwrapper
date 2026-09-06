@@ -573,6 +573,119 @@ HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttribute
 	return CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
 }
 
+FARPROC Utils::Sleep_out = nullptr;
+FARPROC Utils::SleepEx_out = nullptr;
+
+typedef void(WINAPI* SleepProc)(DWORD dwMilliseconds);
+typedef DWORD(WINAPI* SleepExProc)(DWORD dwMilliseconds, BOOL bAlertable);
+
+void WINAPI Utils::kernel_Sleep(DWORD dwMilliseconds)
+{
+	if (Config.DisableDynamicSleep)
+	{
+		// Sleep(0) is a thread yield: replace with CPU pause to keep time slice and core affinity
+		if (dwMilliseconds == 0)
+		{
+			YieldProcessor();
+			return;
+		}
+
+		// Micro-sleeps (<= 2ms) to throttle frame rates: micro-spin with QPC instead of kernel sleep
+		if (dwMilliseconds <= 2)
+		{
+			static const LARGE_INTEGER qpcFreq = []() {
+				LARGE_INTEGER freq = {};
+				QueryPerformanceFrequency(&freq);
+				return freq;
+			}();
+
+			LARGE_INTEGER start = {}, current = {};
+			QueryPerformanceCounter(&start);
+			LONGLONG targetTicks = (qpcFreq.QuadPart * dwMilliseconds) / 1000;
+			while (true)
+			{
+				QueryPerformanceCounter(&current);
+				if (current.QuadPart - start.QuadPart >= targetTicks)
+				{
+					break;
+				}
+				YieldProcessor();
+			}
+			return;
+		}
+	}
+
+	DEFINE_STATIC_PROC_ADDRESS(SleepProc, Sleep, Sleep_out);
+	if (Sleep)
+	{
+		Sleep(dwMilliseconds);
+	}
+}
+
+DWORD WINAPI Utils::kernel_SleepEx(DWORD dwMilliseconds, BOOL bAlertable)
+{
+	if (Config.DisableDynamicSleep && !bAlertable)
+	{
+		if (dwMilliseconds == 0)
+		{
+			YieldProcessor();
+			return 0;
+		}
+		if (dwMilliseconds <= 2)
+		{
+			kernel_Sleep(dwMilliseconds);
+			return 0;
+		}
+	}
+
+	DEFINE_STATIC_PROC_ADDRESS(SleepExProc, SleepEx, SleepEx_out);
+	if (SleepEx)
+	{
+		return SleepEx(dwMilliseconds, bAlertable);
+	}
+	return 0;
+}
+
+void Utils::OptimizeRenderThread()
+{
+	static thread_local bool s_ThreadOptimized = false;
+	if (s_ThreadOptimized) return;
+	s_ThreadOptimized = true;
+
+	if (Config.BoostRenderThread)
+	{
+		HANDLE hThread = GetCurrentThread();
+		// Elevate thread priority to TIME_CRITICAL (level 15)
+		SetThreadPriority(hThread, THREAD_PRIORITY_TIME_CRITICAL);
+		// Prevent Windows scheduler from decaying thread priority
+		SetThreadPriorityBoost(hThread, FALSE);
+
+		// MMCSS registration: AvSetMmThreadCharacteristicsA
+		HMODULE hAvrt = LoadLibraryA("Avrt.dll");
+		if (hAvrt)
+		{
+			typedef HANDLE(WINAPI* pfnAvSetMmThreadCharacteristicsA)(LPCSTR TaskName, LPDWORD TaskIndex);
+			pfnAvSetMmThreadCharacteristicsA pAvSetMmThreadCharacteristicsA =
+				(pfnAvSetMmThreadCharacteristicsA)GetProcAddress(hAvrt, "AvSetMmThreadCharacteristicsA");
+			if (pAvSetMmThreadCharacteristicsA)
+			{
+				DWORD taskIndex = 0;
+				HANDLE hMmcss = pAvSetMmThreadCharacteristicsA("Games", &taskIndex);
+				if (hMmcss)
+				{
+					Logging::Log() << __FUNCTION__ << " Successfully registered render thread with MMCSS 'Games'";
+				}
+			}
+		}
+
+		if (Config.RenderThreadAffinity != 0)
+		{
+			SetThreadAffinityMask(hThread, Config.RenderThreadAffinity);
+			Logging::Log() << __FUNCTION__ << " Set render thread affinity mask: 0x" << std::hex << Config.RenderThreadAffinity;
+		}
+	}
+}
+
 HANDLE WINAPI Utils::kernel_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
 {
 	Logging::LogDebug() << __FUNCTION__ << " " << lpFileName;

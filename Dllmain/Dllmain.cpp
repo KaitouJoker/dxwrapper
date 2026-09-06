@@ -112,10 +112,52 @@ static void SetHighResolutionTimer()
 	timeBeginPeriod(1);
 }
 
+#ifndef PROCESS_POWER_THROTTLING_CURRENT_VERSION
+#define PROCESS_POWER_THROTTLING_CURRENT_VERSION 1
+#define PROCESS_POWER_THROTTLING_EXECUTION_SPEED 0x1
+#define PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION 0x4
+
+typedef struct _PROCESS_POWER_THROTTLING_STATE {
+	ULONG Version;
+	ULONG ControlMask;
+	ULONG StateMask;
+} PROCESS_POWER_THROTTLING_STATE, *PPROCESS_POWER_THROTTLING_STATE;
+#endif
+
+#ifndef ProcessPowerThrottling
+#define ProcessPowerThrottling (PROCESS_INFORMATION_CLASS)0x28
+#endif
+
+typedef BOOL(WINAPI* pfnSetProcessInformation)(HANDLE hProcess, PROCESS_INFORMATION_CLASS ProcessInformationClass, LPVOID ProcessInformation, DWORD ProcessInformationSize);
+
 static void OptimizeProcessPriority()
 {
 	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+
+	// Lock system and display into continuous active mode (disable screen dimming, idle CPU downclocking)
+	SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
+
+	// Completely disable Windows Power Throttling / EcoQoS / Efficiency Mode
+	if (Config.DisablePowerThrottling)
+	{
+		HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+		if (hKernel32)
+		{
+			pfnSetProcessInformation pSetProcessInformation = (pfnSetProcessInformation)GetProcAddress(hKernel32, "SetProcessInformation");
+			if (pSetProcessInformation)
+			{
+				PROCESS_POWER_THROTTLING_STATE PowerThrottling = {};
+				PowerThrottling.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+				PowerThrottling.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+				PowerThrottling.StateMask = 0; // Disable power throttling
+				if (pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, &PowerThrottling, sizeof(PowerThrottling)))
+				{
+					Logging::Log() << "Successfully disabled Windows Power Throttling (EcoQoS)";
+				}
+			}
+		}
+	}
 }
 
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
@@ -450,6 +492,11 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.DisableGameUX)
 		{
 			Utils::DisableGameUX();
+		}
+		if (Config.DisableDynamicSleep && kernel32)
+		{
+			Utils::Sleep_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "Sleep"), "Sleep", Utils::kernel_Sleep);
+			Utils::SleepEx_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "SleepEx"), "SleepEx", Utils::kernel_SleepEx);
 		}
 
 #ifndef D3D9_ONLY

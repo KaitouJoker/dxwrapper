@@ -492,6 +492,8 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDest
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	Utils::OptimizeRenderThread();
+
 	if (IsForcingD3d9to9Ex())
 	{
 		CONST RECT* pSrc = Config.FlipEx ? nullptr : pSourceRect;
@@ -2213,6 +2215,8 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	Utils::OptimizeRenderThread();
+
 	if (Config.FlipEx)
 	{
 		pSourceRect = nullptr;
@@ -2223,7 +2227,45 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 
 	ApplyPrePresentFixes();
 
+	// SpinWaitPacing: Micro spin-wait on GPU event query to prevent driver kernel sleep
+	if (Config.SpinWaitPacing && ProxyInterface)
+	{
+		if (!pEventQuery)
+		{
+			ProxyInterface->CreateQuery(D3DQUERYTYPE_EVENT, &pEventQuery);
+		}
+
+		if (pEventQuery && EventQueryIssued)
+		{
+			static const LARGE_INTEGER freq = []() {
+				LARGE_INTEGER f = {};
+				QueryPerformanceFrequency(&f);
+				return f;
+			}();
+			// Max spin timeout: 200 microseconds (0.2ms)
+			LONGLONG maxSpinTicks = (freq.QuadPart * 200) / 1000000;
+			LARGE_INTEGER startQpc = {}, curQpc = {};
+			QueryPerformanceCounter(&startQpc);
+
+			while (pEventQuery->GetData(nullptr, 0, 0) == S_FALSE)
+			{
+				YieldProcessor();
+				QueryPerformanceCounter(&curQpc);
+				if (curQpc.QuadPart - startQpc.QuadPart >= maxSpinTicks)
+				{
+					break;
+				}
+			}
+		}
+	}
+
 	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+
+	if (Config.SpinWaitPacing && pEventQuery)
+	{
+		pEventQuery->Issue(D3DISSUE_END);
+		EventQueryIssued = true;
+	}
 
 	if (SUCCEEDED(hr))
 	{
@@ -2683,7 +2725,10 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 	BeginSceneCalled = false;
 
 	// Check FPU state before presenting
-	Utils::ResetInvalidFPUState();
+	if (!Config.BypassFpuReset)
+	{
+		Utils::ResetInvalidFPUState();
+	}
 }
 
 void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
@@ -3260,6 +3305,13 @@ DWORD m_IDirect3DDevice9Ex::GetResourceRefCount()
 
 void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 {
+	if (pEventQuery)
+	{
+		pEventQuery->Release();
+		pEventQuery = nullptr;
+		EventQueryIssued = false;
+	}
+
 	if (GammaLUTTexture)
 	{
 		ULONG ref = GammaLUTTexture->Release();
@@ -3503,13 +3555,14 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		LOG_LIMIT(3, __FUNCTION__ << " Warning: Creating non-Ex interface when using D3d9to9Ex!");
 	}
 
-	// Optimize latency: clamp maximum queued frame latency to 1 and boost GPU scheduling priority
+	// Optimize latency: clamp maximum queued frame latency and boost GPU scheduling priority
 	if (ProxyInterfaceEx)
 	{
-		HRESULT hrLat = ProxyInterfaceEx->SetMaximumFrameLatency(1);
+		DWORD maxLatency = (Config.MaxFrameLatency > 0) ? Config.MaxFrameLatency : 1;
+		HRESULT hrLat = ProxyInterfaceEx->SetMaximumFrameLatency(maxLatency);
 		if (SUCCEEDED(hrLat))
 		{
-			LOG_LIMIT(3, __FUNCTION__ << " Successfully set SetMaximumFrameLatency(1)");
+			LOG_LIMIT(3, __FUNCTION__ << " Successfully set SetMaximumFrameLatency(" << maxLatency << ")");
 		}
 		HRESULT hrPrio = ProxyInterfaceEx->SetGPUThreadPriority(7);
 		if (SUCCEEDED(hrPrio))

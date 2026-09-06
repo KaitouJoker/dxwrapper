@@ -60,6 +60,10 @@ private:
 	bool IsInScene = false;
 	bool BeginSceneCalled = false;
 
+	// Low-latency GPU fence pacing
+	IDirect3DQuery9* pEventQuery = nullptr;
+	bool EventQueryIssued = false;
+
 	bool FailedReset = false;
 
 	std::unordered_set<m_IDirect3DSurface9*> EmulatedSurfaceList;
@@ -216,6 +220,12 @@ public:
 	~m_IDirect3DDevice9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		if (pEventQuery)
+		{
+			pEventQuery->Release();
+			pEventQuery = nullptr;
+		}
 
 		DeleteCriticalSection(&d9cs);
 	}

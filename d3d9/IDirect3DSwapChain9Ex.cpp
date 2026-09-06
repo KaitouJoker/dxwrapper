@@ -76,6 +76,8 @@ HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RE
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	Utils::OptimizeRenderThread();
+
 	if (Config.FlipEx)
 	{
 		pSourceRect = nullptr;

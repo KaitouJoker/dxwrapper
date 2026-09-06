@@ -89,6 +89,10 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DepthBiasFactor) \
 	visit(DepthBiasDropOffValue) \
 	visit(DeviceLookupCacheTime) \
+	visit(DisableDynamicSleep) \
+	visit(DisablePowerThrottling) \
+	visit(BoostRenderThread) \
+	visit(BypassFpuReset) \
 	visit(DisableGameUX) \
 	visit(DisableGDIGammaRamp) \
 	visit(DisplayBrightness) \
@@ -150,6 +154,9 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(LoadPlugins) \
 	visit(LockColorkey) \
 	visit(LoopSleepTime) \
+	visit(MaxFrameLatency) \
+	visit(SpinWaitPacing) \
+	visit(RenderThreadAffinity) \
 	visit(MouseMovementFactor) \
 	visit(MouseMovementFactorX) \
 	visit(MouseMovementFactorY) \
@@ -396,6 +403,13 @@ struct CONFIG
 	DWORD AnisotropicFiltering = 0;				// Enable Anisotropic Filtering for d3d9
 	DWORD AntiAliasing = 0;						// Enable AntiAliasing for d3d9 CreateDevice
 	bool FlipEx = false;						// Enable FlipEx presentation mode for D3D9Ex. Disables AntiAliasing
+	bool DisableDynamicSleep = true;			// Hook Sleep/SleepEx and prevent thread yielding/sleeping
+	bool DisablePowerThrottling = true;			// Completely disable Windows Power Throttling / EcoQoS
+	bool BoostRenderThread = true;				// Boost game render thread priority to TIME_CRITICAL and register with MMCSS
+	DWORD MaxFrameLatency = 1;					// Maximum frame latency for D3D9Ex (1 = lowest latency, 2 = stutter-free balance)
+	bool SpinWaitPacing = true;					// Use micro spin-wait on GPU fence instead of kernel sleep
+	bool BypassFpuReset = true;					// Bypass redundant per-frame FPU status checks
+	DWORD RenderThreadAffinity = 0;				// Affinity mask for the render thread (0 = default)
 	DWORD RealWrapperMode = 0;					// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;				// Memory used for verification before hot patching
 	std::string WinVersionLie = "";				// Using DDrawCompat WinVersionLie to tell the OS a different OS

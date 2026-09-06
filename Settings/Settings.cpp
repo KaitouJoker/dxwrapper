@@ -533,6 +533,13 @@ void Settings::SetDefaultConfigSettings()
 	Config.D3d9to9Ex = 1;
 	Config.FlipEx = 1;
 	Config.DisableLogging = 1;
+	Config.DisableDynamicSleep = 1;
+	Config.DisablePowerThrottling = 1;
+	Config.BoostRenderThread = 1;
+	Config.MaxFrameLatency = 1;
+	Config.SpinWaitPacing = 1;
+	Config.BypassFpuReset = 1;
+	Config.RenderThreadAffinity = 0;
 	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = 1;
 	Config.DdrawHookSystem32 = NOT_EXIST;
 	Config.D3d8HookSystem32 = NOT_EXIST;
