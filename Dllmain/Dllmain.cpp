@@ -35,11 +35,13 @@
 #include "IClassFactory\IClassFactory.h"
 #include "Libraries\d3dx9.h"
 #include "d3d9\d3d9External.h"
+#ifndef D3D9_ONLY
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
 #include "dinput8\dinput8External.h"
 #include "d3d8\d3d8External.h"
 #include "dsound\dsoundExternal.h"
+#endif
 #include "Libraries\ScopeGuard.h"
 #include "dxwrapper.h"
 
@@ -450,6 +452,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::DisableGameUX();
 		}
 
+#ifndef D3D9_ONLY
 		// Hook CoCreateInstance
 		if (Config.EnableDdrawWrapper || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8 || Config.EnableDsoundWrapper)
 		{
@@ -656,6 +659,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// Prepare wrapper
 			VISIT_PROCS_D3D8(SET_WRAPPED_PROC);
 		}
+#endif // D3D9_ONLY
 
 		// Start d3d9.dll module
 		if (Config.EnableD3d9Wrapper || Config.D3d8to9 || Config.Dd7to9)
@@ -715,12 +719,15 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Win32::Version::installWinLieHooks();
 #endif // DDRAWCOMPAT
 
+#ifndef D3D9_ONLY
 		// Start Dd7to9
 		if (Config.Dd7to9)
 		{
 			InitDDraw();
 		}
-		else if (Config.EnableD3d9Wrapper || Config.D3d8to9 || Config.ForceKeyboardLayout)
+		else
+#endif
+		if (Config.EnableD3d9Wrapper || Config.D3d8to9 || Config.ForceKeyboardLayout)
 		{
 			Logging::Log() << "Installing User32 hooks";
 			HMODULE user32 = GetModuleHandleA("user32.dll");
