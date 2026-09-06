@@ -58,23 +58,6 @@ void LoadD3dx9()
 	Logging::Log() << "Loading system d3dx9 libraries";
 
 	d3dx9Module = LoadLibraryA("d3dx9_43.dll");
-	if (!d3dx9Module)
-	{
-		const char* d3dxDlls[] = {
-			"d3dx9_42.dll", "d3dx9_41.dll", "d3dx9_40.dll", "d3dx9_39.dll", "d3dx9_38.dll",
-			"d3dx9_37.dll", "d3dx9_36.dll", "d3dx9_35.dll", "d3dx9_34.dll", "d3dx9_33.dll",
-			"d3dx9_32.dll", "d3dx9_31.dll", "d3dx9_30.dll", "d3dx9_29.dll", "d3dx9_28.dll",
-			"d3dx9_27.dll", "d3dx9_26.dll", "d3dx9_25.dll", "d3dx9_24.dll"
-		};
-		for (const auto& dllName : d3dxDlls)
-		{
-			d3dx9Module = LoadLibraryA(dllName);
-			if (d3dx9Module)
-			{
-				break;
-			}
-		}
-	}
 	d3dCompileModule = LoadLibraryA("d3dcompiler_47.dll");
 	if (!d3dCompileModule)
 	{
