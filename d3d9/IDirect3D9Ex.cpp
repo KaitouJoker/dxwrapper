@@ -815,6 +815,14 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 
 			// Backbuffer (must be at least 2 for FlipEx)
 			pPresentationParameters->BackBufferCount = max(2, pPresentationParameters->BackBufferCount);
+
+			// FlipEx requires 32-bit color format
+			if (pPresentationParameters->BackBufferFormat == D3DFMT_R5G6B5 ||
+				pPresentationParameters->BackBufferFormat == D3DFMT_X1R5G5B5 ||
+				pPresentationParameters->BackBufferFormat == D3DFMT_A1R5G5B5)
+			{
+				pPresentationParameters->BackBufferFormat = D3DFMT_X8R8G8B8;
+			}
 		}
 		else if (pPresentationParameters->Windowed)
 		{
@@ -823,6 +831,14 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			pPresentationParameters->Flags &= ~(D3DPRESENTFLAG_LOCKABLE_BACKBUFFER | D3DPRESENTFLAG_VIDEO);
 			pPresentationParameters->SwapEffect = D3DSWAPEFFECT_FLIPEX;
 			pPresentationParameters->BackBufferCount = max(2, pPresentationParameters->BackBufferCount);
+
+			// FlipEx requires 32-bit color format
+			if (pPresentationParameters->BackBufferFormat == D3DFMT_R5G6B5 ||
+				pPresentationParameters->BackBufferFormat == D3DFMT_X1R5G5B5 ||
+				pPresentationParameters->BackBufferFormat == D3DFMT_A1R5G5B5)
+			{
+				pPresentationParameters->BackBufferFormat = D3DFMT_X8R8G8B8;
+			}
 		}
 		else
 		{

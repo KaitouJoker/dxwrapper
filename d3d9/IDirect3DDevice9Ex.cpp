@@ -464,15 +464,25 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS* pPresentationParamete
 		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
 		D3DDISPLAYMODEEX* pFullscreenDisplayMode = nullptr;
 
-		if (pPresentationParameters)
+		if (pPresentationParameters && !pPresentationParameters->Windowed)
 		{
-			pFullscreenDisplayMode = &FullscreenDisplayMode;
 			m_IDirect3D9Ex::GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
+			if (FullscreenDisplayMode.Format == D3DFMT_UNKNOWN)
+			{
+				FullscreenDisplayMode.Format = D3DFMT_X8R8G8B8;
+			}
+			pFullscreenDisplayMode = &FullscreenDisplayMode;
 		}
 
 		LOG_LIMIT(3, __FUNCTION__ << " Warning: Calling Reset() when using D3d9to9Ex.  Managed interfaces converted to the default pool will be lost!");
 
-		return ResetEx(pPresentationParameters, pFullscreenDisplayMode);
+		HRESULT hr = ResetEx(pPresentationParameters, pFullscreenDisplayMode);
+		if (SUCCEEDED(hr))
+		{
+			return hr;
+		}
+
+		Logging::Log() << __FUNCTION__ << " Warning: ResetEx failed (" << (D3DERR)hr << "), falling back to Reset!";
 	}
 
 	return ResetT<fReset>(nullptr, pPresentationParameters, nullptr);
@@ -3776,7 +3786,8 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 			m_IDirect3D9Ex::UpdatePresentParameterForMultisample(p_d3dpp, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality);
 
 			// Reset device
-			hr = ResetT(T{}, p_d3dpp, pFullscreenDisplayMode);
+			D3DDISPLAYMODEEX* pMode = (p_d3dpp && p_d3dpp->Windowed) ? nullptr : pFullscreenDisplayMode;
+			hr = ResetT(T{}, p_d3dpp, pMode);
 
 			// Check if device was reset successfully
 			if (FAILED(hr))
@@ -3795,7 +3806,13 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 	if (FAILED(hr))
 	{
 		// Reset device
-		hr = ResetT(T{}, p_d3dpp, pFullscreenDisplayMode);
+		D3DDISPLAYMODEEX* pMode = (p_d3dpp && p_d3dpp->Windowed) ? nullptr : pFullscreenDisplayMode;
+		hr = ResetT(T{}, p_d3dpp, pMode);
+
+		if (FAILED(hr) && IsEx && ProxyInterface)
+		{
+			hr = ProxyInterface->Reset(p_d3dpp);
+		}
 
 		// Clear multi-sampled variables
 		if (SUCCEEDED(hr) && ClearMultiSampled)
