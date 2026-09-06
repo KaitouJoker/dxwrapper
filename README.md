@@ -6,7 +6,7 @@ DirectX 9 및 구형 DirectX 기반 게임을 최신 Windows 10/11 환경에서 
 
 ---
 
-## 📌 목차
+## 목차
 1. [설치 및 INI 파일 로딩 구조](#1-설치-및-ini-파일-로딩-구조)
 2. [주요 설정 (Major Settings)](#2-주요-설정-major-settings)
 3. [추가 설정 - 성능 및 초저지연 (Advanced Latency & Performance)](#3-추가-설정---성능-및-초저지연-advanced-latency--performance)
@@ -146,7 +146,7 @@ DirectX 9 및 구형 DirectX 기반 게임을 최신 Windows 10/11 환경에서 
 
 설정 파일(`d3d9.ini`)의 `[Compatibility]` 및 `[d3d9]` 섹션에 아래 설정을 복사하여 사용하십시오.
 
-### 🎬 프로필 1: 방송 / 영상 녹화 & 오버레이 모드 (현재 기본 적용)
+### 프로필 1: 방송 / 영상 녹화 & 오버레이 모드 (현재 기본 적용)
 > **단일 모니터 화면 녹화 및 CapFrameX/PresentMon 오버레이 표출에 최적화**
 
 ```ini
@@ -174,7 +174,7 @@ DisableLogging             = 1
 
 ---
 
-### ⚡ 프로필 2: 극한의 타임어택 / 대회용 모드 (Legacy Flip)
+### 프로필 2: 극한의 타임어택 / 대회용 모드 (Legacy Flip)
 > **0.1ms의 DWM 통신 지연조차 허용하지 않는 극한의 초저지연 세팅**
 
 ```ini
