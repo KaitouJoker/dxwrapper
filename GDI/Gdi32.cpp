@@ -16,7 +16,9 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#ifndef D3D9_ONLY
 #include "ddraw\ddraw.h"
+#endif
 #include "GDI.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
@@ -35,6 +37,7 @@ int WINAPI gdi_GetDeviceCaps(HDC hdc, int index)
 
 	DEFINE_STATIC_PROC_ADDRESS(GetDeviceCapsProc, GetDeviceCaps, GetDeviceCaps_out);
 
+#ifndef D3D9_ONLY
 	if (index == BITSPIXEL)
 	{
 		switch (m_IDirectDrawX::GetDDrawBitsPixel(WindowFromDC(hdc)))
@@ -50,6 +53,7 @@ int WINAPI gdi_GetDeviceCaps(HDC hdc, int index)
 			return 32;
 		}
 	}
+#endif
 
 	if (!GetDeviceCaps)
 	{

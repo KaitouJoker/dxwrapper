@@ -19,7 +19,9 @@
 #include "GDI.h"
 #include "GDI\WndProc.h"
 #include "Utils\Utils.h"
+#ifndef D3D9_ONLY
 #include "ddraw\ddraw.h"
+#endif
 #include "d3d9\d3d9External.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
@@ -118,6 +120,7 @@ int WINAPI user_GetSystemMetrics(int nIndex)
 
 	DEFINE_STATIC_PROC_ADDRESS(GetSystemMetricsProc, GetSystemMetrics, GetSystemMetrics_out);
 
+#ifndef D3D9_ONLY
 	switch (nIndex)
 	{
 	case SM_CXSCREEN:
@@ -139,6 +142,7 @@ int WINAPI user_GetSystemMetrics(int nIndex)
 		break;
 	}
 	}
+#endif
 
 	if (!GetSystemMetrics)
 	{

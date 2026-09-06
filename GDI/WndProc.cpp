@@ -17,9 +17,13 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <algorithm>
+#include <unordered_map>
+#include "Libraries\ScopeGuard.h"
 #include "WndProc.h"
 #include "GDI.h"
+#ifndef D3D9_ONLY
 #include "ddraw\ddraw.h"
+#endif
 #include "d3d9\d3d9External.h"
 #include "Utils\Utils.h"
 #include "Settings\Settings.h"
@@ -337,6 +341,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	// Handle other window messages
 	switch (Msg)
 	{
+#ifndef D3D9_ONLY
 	case WM_APP_CREATE_D3D9_DEVICE:
 		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
 		{
@@ -385,6 +390,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			return 0;
 		}
 		break;
+#endif
 
 	case WM_ACTIVATEAPP:
 		// Handle window focus loss
@@ -597,11 +603,13 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			// Check if need to modify the size
 			if (!(WinPos->flags & SWP_NOSIZE))
 			{
+#ifndef D3D9_ONLY
 				// Handle exclusive mode cases where the window is resized to be different than the display size (e.g. Call to Power 2)
 				if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
 				{
 					m_IDirectDrawX::CheckFixWindowPos(hWnd, WinPos);
 				}
+#endif
 
 				RECT rc = {};
 				GetWindowRect(hWnd, &rc);
@@ -674,11 +682,13 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_NCDESTROY:
+#ifndef D3D9_ONLY
 		// Release d3d9 interface
 		if (pDataStruct->IsDirectDraw)
 		{
 			m_IDirectDrawX::TriggerDeviceRelease(hWnd);
 		}
+#endif
 
 		// Final WndProc call
 		LRESULT lr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);

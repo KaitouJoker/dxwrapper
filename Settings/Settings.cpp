@@ -533,7 +533,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.D3d9to9Ex = 1;
 	Config.FlipEx = 1;
 	Config.DisableLogging = 1;
-	Config.DisableMaxWindowedMode = 1;
+	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = 1;
 	Config.DdrawHookSystem32 = NOT_EXIST;
 	Config.D3d8HookSystem32 = NOT_EXIST;
 	Config.DinputHookSystem32 = NOT_EXIST;

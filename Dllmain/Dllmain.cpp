@@ -859,11 +859,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		WriteMemory::StopThread();
 		//Utils::StopPriorityMonitor();
 
+#ifndef D3D9_ONLY
 		// Unload DdrawWrapper
 		if (Config.Dd7to9)
 		{
 			ExitDDraw();
 		}
+#endif
 
 #ifdef DDRAWCOMPAT
 		// Unload and Unhook DDrawCompat

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{579E7FE7-2745-4100-A802-23511711FCDE}</ProjectGuid>
+    <RootNamespace>dxwrapper</RootNamespace>
+    <ProjectName>dxwrapper_d3d9</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
+    <TargetName>d3d9</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
+    <TargetName>d3d9</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDLL;WINVER=0x0601;_WIN32_WINNT=0x0601;DISABLE_COMMON_LOGGING;D3D9_ONLY;DXWND;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level4</WarningLevel>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\Object\%(RelativeDir)</ObjectFileName>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Libraries;$(ProjectDir)Libraries\DirectX81SDK\include;$(ProjectDir)Libraries\Win10_WDK_10.0.26100.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>detours.lib;msimg32.lib;Shlwapi.lib;oleacc.lib;wbemuuid.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>Dllmain\d3d9.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>Libraries\detours\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(ProjectDir)Release" mkdir "$(ProjectDir)Release" >nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(ProjectDir)Release\d3d9.dll" >nul
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(ProjectDir)Release\dxwrapper.ini" >nul
+      </Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
+cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; FOR /F "tokens=3" %%i IN (BuildNo.rc) DO set /a var=%%i+1 &gt;Build.txt"
+cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; FOR /F %%i IN (Build.txt) DO echo #define BUILD_NUMBER %%i &gt;BuildNo.rc"
+cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; del Build.txt"
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="d3d9\AddressLookupTable.cpp" />
+    <ClCompile Include="d3d9\d3d9.cpp" />
+    <ClCompile Include="d3d9\d3d9ResourceDumper.cpp" />
+    <ClCompile Include="d3d9\DebugOverlay.cpp" />
+    <ClCompile Include="d3d9\DeviceChecking.cpp" />
+    <ClCompile Include="d3d9\IDirect3D9Ex.cpp" />
+    <ClCompile Include="d3d9\IDirect3DCubeTexture9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DDevice9Ex.cpp" />
+    <ClCompile Include="d3d9\IDirect3DDXVADevice9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DIndexBuffer9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DPixelShader9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DQuery9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DStateBlock9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DSurface9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DSwapChain9Ex.cpp" />
+    <ClCompile Include="d3d9\IDirect3DTexture9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DVertexBuffer9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DVertexDeclaration9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DVertexShader9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DVideoDevice9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DVolume9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp" />
+    <ClCompile Include="d3d9\InterfaceQuery.cpp" />
+    <ClCompile Include="Dllmain\Dllmain.cpp" />
+    <ClCompile Include="External\Hooking\Disasm.cpp" />
+    <ClCompile Include="External\Hooking\Hook.cpp" />
+    <ClCompile Include="External\Hooking\HotPatch.cpp" />
+    <ClCompile Include="External\Hooking.Patterns\Hooking.Patterns.cpp" />
+    <ClCompile Include="External\Logging\Logging.cpp" />
+    <ClCompile Include="GDI\Comdlg32.cpp" />
+    <ClCompile Include="GDI\Gdi32.cpp" />
+    <ClCompile Include="GDI\User32.cpp" />
+    <ClCompile Include="GDI\WndProc.cpp" />
+    <ClCompile Include="Libraries\d3dx9.cpp" />
+    <ClCompile Include="Libraries\dwmapi.cpp" />
+    <ClCompile Include="Libraries\uxtheme.cpp" />
+    <ClCompile Include="Libraries\winmm.cpp" />
+    <ClCompile Include="Logging\Logging.cpp" />
+    <ClCompile Include="Settings\ReadParse.cpp" />
+    <ClCompile Include="Settings\Settings.cpp" />
+    <ClCompile Include="Utils\CPUAffinity.cpp" />
+    <ClCompile Include="Utils\Disasm.cpp" />
+    <ClCompile Include="Utils\ForceKeyboardLayout.cpp" />
+    <ClCompile Include="Utils\Fullscreen.cpp" />
+    <ClCompile Include="Utils\MemoryModule.cpp" />
+    <ClCompile Include="Utils\MyStrings.cpp" />
+    <ClCompile Include="Utils\Utils.cpp" />
+    <ClCompile Include="Utils\WriteMemory.cpp" />
+    <ClCompile Include="Wrappers\wrapper.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Dllmain\BuildNo.rc" />
+    <ResourceCompile Include="Dllmain\dxwrapper.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
