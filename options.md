@@ -1,4 +1,4 @@
-﻿# DxWrapper 설정 옵션 상세 가이드 (Options Guide)
+# DxWrapper 설정 옵션 상세 가이드 (Options Guide)
 
 본 문서는 DxWrapper Low-Latency Edition의 설정 파일(`d3d9.ini` 또는 `dxwrapper.ini`)에서 사용할 수 있는 모든 옵션의 동작 원리와 권장 설정값을 상세히 정리한 가이드입니다.
 
@@ -207,36 +207,24 @@
 
 ## 5. 용도별 권장 프리셋
 
-### 프로필 1: 방송 / 영상 녹화 & 오버레이 모드 (현재 기본 적용)
-> **단일 모니터 화면 캡처 및 CapFrameX/PresentMon 오버레이 표출에 최적화**
+모든 저지연 최적화(Sleep 마이크로스핀, MMCSS 우선순위 부스트, 전원 스로틀링 해제 등)는 공통으로 적용되며, **두 프로필 간의 유일한 차이는 `DisableMaxWindowedMode` 값 하나뿐**입니다.
 
-```ini
-[Compatibility]
-D3d9to9Ex                  = 0
-EnableD3d9Wrapper          = 1
+### 프로필 차이점 비교표
 
-[d3d9]
-EnableWindowMode           = 0
-FullscreenWindowMode       = 0
-WindowModeBorder           = 0
-FlipEx                     = 0
-DisableMaxWindowedMode     = 0
-DisableDynamicSleep        = 1
-DisablePowerThrottling     = 1
-BoostRenderThread          = 1
-MaxFrameLatency            = 1
-SpinWaitPacing             = 1
-BypassFpuReset             = 1
-DisableLogging             = 1
-```
-- **프레젠테이션 모드**: `Hardware: Independent Flip`
-- **99% 프레임 타임**: ~1.35ms
-- **특징**: F11 전체화면/창모드 정상 작동, 작업 표시줄 숨김, 게임 화면 위 프레임 오버레이 표출 가능, 빠른 Alt-Tab.
+| 비교 항목 | 프로필 1 (방송 / 영상 녹화 / 오버레이) | 프로필 2 (극한의 타임어택 / 대회용) |
+| :--- | :---: | :---: |
+| **핵심 변경 옵션** | **`DisableMaxWindowedMode = 0`** | **`DisableMaxWindowedMode = 1`** |
+| **프레젠테이션 모드** | `Hardware: Independent Flip` | `Hardware: Legacy Flip` |
+| **99% 프레임 타임** | 약 1.35ms (약 740 FPS) | 약 1.25ms (약 800 FPS) |
+| **단일 모니터 오버레이 표출** | 지원 (게임 화면 위에 실시간 렌더링) | 미지원 (보조 모니터 또는 별도 창 확인) |
+| **Alt-Tab 전환 반응** | 즉시 전환 (화면 깜빡임 없음) | 전체화면 깜빡임 발생 |
+| **권장 대상** | 방송 스트리머, 유튜브 녹화, 일반 플레이어 | 기록 갱신용 타임어택, 대회 출전 선수 |
 
 ---
 
-### 프로필 2: 극한의 타임어택 / 대회용 모드 (Legacy Flip)
-> **0.1ms의 DWM 통신 지연조차 허용하지 않는 극한의 초저지연 세팅**
+### 통합 최적화 설정 (`d3d9.ini`)
+
+아래 설정을 기본 베이스로 사용하며, 목적에 맞춰 **`DisableMaxWindowedMode`** 값만 `0` 또는 `1`로 전환하십시오:
 
 ```ini
 [Compatibility]
@@ -248,7 +236,6 @@ EnableWindowMode           = 0
 FullscreenWindowMode       = 0
 WindowModeBorder           = 0
 FlipEx                     = 0
-DisableMaxWindowedMode     = 1
 DisableDynamicSleep        = 1
 DisablePowerThrottling     = 1
 BoostRenderThread          = 1
@@ -256,7 +243,11 @@ MaxFrameLatency            = 1
 SpinWaitPacing             = 1
 BypassFpuReset             = 1
 DisableLogging             = 1
+
+;; ======================================================================
+;; [핵심 전환 옵션] 아래 값 하나로 동작 모드가 결정됩니다:
+;;   DisableMaxWindowedMode = 0  -> 프로필 1 (Independent Flip, 오버레이 표출, ~1.35ms)
+;;   DisableMaxWindowedMode = 1  -> 프로필 2 (Legacy Flip, 극한 타임어택, ~1.25ms)
+;; ======================================================================
+DisableMaxWindowedMode     = 0
 ```
-- **프레젠테이션 모드**: `Hardware: Legacy Flip` (순수 독점 전체화면)
-- **99% 프레임 타임**: ~1.25ms (약 800 FPS)
-- **특징**: DWM 개입 제로, 오버레이는 보조 모니터 또는 별도 앱 창에서 확인 필요.
