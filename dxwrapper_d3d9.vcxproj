@@ -72,7 +72,7 @@
     <PostBuildEvent>
       <Command>if not exist "$(ProjectDir)Release" mkdir "$(ProjectDir)Release" >nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(ProjectDir)Release\d3d9.dll" >nul
-copy /Y "$(ProjectDir)Settings\Settings.ini" "$(ProjectDir)Release\dxwrapper.ini" >nul
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(ProjectDir)Release\d3d9.ini" >nul
       </Command>
     </PostBuildEvent>
     <PreBuildEvent>

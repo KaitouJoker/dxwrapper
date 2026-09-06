@@ -51,7 +51,7 @@ if exist "Release\d3d9.dll" (
     echo   [SUCCESS] d3d9.dll successfully built!
     echo   Output Directory: %~dp0Release\
     echo ======================================================================
-    dir "Release\d3d9.dll" "Release\dxwrapper.ini"
+    dir "Release\d3d9.dll" "Release\d3d9.ini"
     echo.
 ) else (
     echo [ERROR] Release\d3d9.dll was not generated.

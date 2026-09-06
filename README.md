@@ -1,4 +1,4 @@
-﻿# DxWrapper (Low-Latency & Modern Windows Optimization Edition)
+# DxWrapper (Low-Latency & Modern Windows Optimization Edition)
 
 DirectX 9 및 구형 DirectX 기반 게임을 최신 Windows 10/11 환경에서 **초저지연(Low-Latency)** 및 **최고의 프레임 안정성**으로 구동하기 위해 특화 개발된 고성능 DirectX 래퍼 라이브러리입니다.
 
@@ -214,7 +214,7 @@ build_d3d9.bat
 
 ### 산출물 위치
 - `Release\d3d9.dll` (약 656 KB)
-- `Release\dxwrapper.ini`
+- `Release\d3d9.ini`
 
 ---
 
