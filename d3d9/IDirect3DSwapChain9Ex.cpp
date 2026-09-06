@@ -76,6 +76,14 @@ HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RE
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (Config.FlipEx)
+	{
+		pSourceRect = nullptr;
+		pDestRect = nullptr;
+		hDestWindowOverride = nullptr;
+		pDirtyRegion = nullptr;
+	}
+
 	return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 }
 

@@ -494,7 +494,12 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDest
 
 	if (IsForcingD3d9to9Ex())
 	{
-		if (SUCCEEDED(PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, 0)))
+		CONST RECT* pSrc = Config.FlipEx ? nullptr : pSourceRect;
+		CONST RECT* pDst = Config.FlipEx ? nullptr : pDestRect;
+		HWND hOverride = Config.FlipEx ? nullptr : hDestWindowOverride;
+		CONST RGNDATA* pDirty = Config.FlipEx ? nullptr : pDirtyRegion;
+
+		if (SUCCEEDED(PresentEx(pSrc, pDst, hOverride, pDirty, 0)))
 		{
 			return D3D_OK;
 		}
@@ -2207,6 +2212,14 @@ HRESULT m_IDirect3DDevice9Ex::ComposeRects(THIS_ IDirect3DSurface9* pSrc, IDirec
 HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.FlipEx)
+	{
+		pSourceRect = nullptr;
+		pDestRect = nullptr;
+		hDestWindowOverride = nullptr;
+		pDirtyRegion = nullptr;
+	}
 
 	ApplyPrePresentFixes();
 
