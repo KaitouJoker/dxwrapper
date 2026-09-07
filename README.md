@@ -1,4 +1,4 @@
-﻿# DxWrapper (Low-Latency & Modern Windows Optimization Edition)
+# DxWrapper (Low-Latency & Modern Windows Optimization Edition)
 
 [English](README.md) | [한국어 (Korean)](readme_kr.md)
 
@@ -22,15 +22,14 @@ Tailored and battle-tested for high-refresh-rate (144Hz to 240Hz+) competitive e
 ## 1. Installation and Configuration Hierarchy
 
 ### Deployment
-1. Copy the compiled `d3d9.dll` and the configuration file (`d3d9.ini` or `dxwrapper.ini`) into the directory containing your game executable (e.g., `KartRider.exe`).
+1. Copy the compiled `d3d9.dll` and configuration file (`d3d9.ini`) into the directory containing your game executable (e.g., `KartRider.exe`).
 2. When the game launches, `d3d9.dll` is automatically loaded into the process, intercepting Direct3D calls and accelerating the rendering pipeline.
 3. **Zero-Config Standalone Execution**: Even if `d3d9.ini` is omitted, the DLL internally initializes with hardcoded competitive low-latency defaults (`FlipEx=1`, `DisableDynamicSleep=1`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`).
 
 ### Configuration Search Order
 For maximum compatibility and per-game flexibility, the wrapper searches for configuration files in the following order:
 1. **`d3d9-[ProcessName].ini`** (Highest priority, e.g., `d3d9-KartRider.ini`)
-2. **`d3d9.ini`** (Second priority, primary configuration)
-3. **`dxwrapper.ini`** (Third priority fallback)
+2. **`d3d9.ini`** (Default configuration)
 
 ---
 
