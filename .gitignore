@@ -41,3 +41,4 @@ ipch/*
 *.TMP
 Release/
 Release*.md
+Comparison-video/

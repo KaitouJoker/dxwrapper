@@ -9,17 +9,34 @@ Tailored and battle-tested for high-refresh-rate (144Hz to 240Hz+) competitive e
 ---
 
 ## Table of Contents
-1. [Installation and Configuration Hierarchy](#1-installation-and-configuration-hierarchy)
-2. [Core Display and Compatibility Settings](#2-core-display-and-compatibility-settings)
-3. [Low-Latency and Performance Optimizations](#3-low-latency-and-performance-optimizations)
-4. [Supplementary Settings](#4-supplementary-settings)
-5. [Recommended Profiles](#5-recommended-profiles)
-6. [Developer Build Guide](#6-developer-build-guide)
-7. [License and Credits](#7-license-and-credits)
+1. [Performance Demonstration (Video)](#1-performance-demonstration-video)
+2. [Installation and Configuration Hierarchy](#2-installation-and-configuration-hierarchy)
+3. [Core Display and Compatibility Settings](#3-core-display-and-compatibility-settings)
+4. [Low-Latency and Performance Optimizations](#4-low-latency-and-performance-optimizations)
+5. [Supplementary Settings](#5-supplementary-settings)
+6. [Recommended Profiles](#6-recommended-profiles)
+7. [Developer Build Guide](#7-developer-build-guide)
+8. [License and Credits](#8-license-and-credits)
 
 ---
 
-## 1. Installation and Configuration Hierarchy
+## 1. Performance Demonstration (Video)
+
+The following side-by-side recordings demonstrate the frame stability, input responsiveness, and elimination of periodic 1.1ms -> 1.6ms frame-time spikes in KartRider when running with DxWrapper versus the legacy DirectX runtime.
+
+### Original (`d3dx9_27.dll`)
+> Noticeable periodic frame-time spikes (1.1 ms -> 1.6 ms) and OS scheduler micro-stutters under the legacy presentation pipeline.
+
+https://github.com/user-attachments/assets/2791662b-7665-4540-9d48-99ca38de2f33
+
+### DxWrapper (`d3d9.dll`)
+> Completely flat, jitter-free frame pacing locked at ~1.1 ms (900+ FPS) achieved via sleep interception, MMCSS thread priority elevation, and DWM bypass.
+
+https://github.com/user-attachments/assets/7d7afbc1-af99-4283-916f-f025c07ac0d6
+
+---
+
+## 2. Installation and Configuration Hierarchy
 
 ### Deployment
 1. **Remove Legacy DLL**: If `d3dx9_27.dll` exists in your game directory, **delete it**. Retaining a legacy or mismatched `d3dx9_27.dll` in the local game folder can interfere with DirectX runtime loading and cause crash or rendering issues.
@@ -34,7 +51,7 @@ For maximum compatibility and per-game flexibility, the wrapper searches for con
 
 ---
 
-## 2. Core Display and Compatibility Settings
+## 3. Core Display and Compatibility Settings
 
 These settings dictate the rendering pipeline architecture and swapchain presentation model.
 
@@ -81,7 +98,7 @@ These settings dictate the rendering pipeline architecture and swapchain present
 
 ---
 
-## 3. Low-Latency and Performance Optimizations
+## 4. Low-Latency and Performance Optimizations
 
 Custom-engineered latency reduction systems designed to eliminate micro-stutters and dedicate full hardware execution to the game's rendering thread.
 
@@ -131,7 +148,7 @@ Custom-engineered latency reduction systems designed to eliminate micro-stutters
 
 ---
 
-## 4. Supplementary Settings
+## 5. Supplementary Settings
 
 ### Display and Quality Control
 - **`EnableVSync = 0`**: Disables vertical synchronization for immediate frame presentation (`D3DPRESENT_INTERVAL_IMMEDIATE`).
@@ -146,7 +163,7 @@ Custom-engineered latency reduction systems designed to eliminate micro-stutters
 
 ---
 
-## 5. Recommended Profiles
+## 6. Recommended Profiles
 
 All core latency optimizations (sleep interception, MMCSS thread priority boosting, power throttling prevention) are active across both profiles. **The sole distinction is the value of `DisableMaxWindowedMode`**.
 
@@ -195,7 +212,7 @@ For the complete list of all 133 configuration parameters, refer to [Configurati
 
 ---
 
-## 6. Developer Build Guide
+## 7. Developer Build Guide
 
 The build system is configured for MSVC v145 (Visual Studio 2026 / 2022) targeting x86 Win32, stripping all unused legacy subsystems (DirectDraw, DirectSound, DirectInput, Direct3D 8) into an ultra-lean binary (~650 KB).
 
@@ -216,7 +233,7 @@ build_d3d9.bat nopause
 
 ---
 
-## 7. License and Credits
+## 8. License and Credits
 
 This project is distributed under the zlib license.
 

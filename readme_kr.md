@@ -9,17 +9,34 @@ DirectX 9 및 구형 DirectX 기반 게임을 최신 Windows 10/11 환경에서 
 ---
 
 ## 목차
-1. [설치 및 INI 파일 로딩 구조](#1-설치-및-ini-파일-로딩-구조)
-2. [주요 설정 (Major Settings)](#2-주요-설정-major-settings)
-3. [추가 설정 - 성능 및 초저지연 (Advanced Latency & Performance)](#3-추가-설정---성능-및-초저지연-advanced-latency--performance)
-4. [부가 설정 (Supplementary Settings)](#4-부가-설정-supplementary-settings)
-5. [용도별 권장 프리셋 (Recommended Profiles)](#5-용도별-권장-프리셋-recommended-profiles)
-6. [개발자 빌드 가이드 (Developer Build Guide)](#6-개발자-빌드-가이드-developer-build-guide)
-7. [라이선스 및 크레딧](#7-라이선스-및-크레딧)
+1. [성능 비교 영상 (Performance Demonstration)](#1-성능-비교-영상-performance-demonstration)
+2. [설치 및 INI 파일 로딩 구조](#2-설치-및-ini-파일-로딩-구조)
+3. [주요 설정 (Major Settings)](#3-주요-설정-major-settings)
+4. [추가 설정 - 성능 및 초저지연 (Advanced Latency & Performance)](#4-추가-설정---성능-및-초저지연-advanced-latency--performance)
+5. [부가 설정 (Supplementary Settings)](#5-부가-설정-supplementary-settings)
+6. [용도별 권장 프리셋 (Recommended Profiles)](#6-용도별-권장-프리셋-recommended-profiles)
+7. [개발자 빌드 가이드 (Developer Build Guide)](#7-개발자-빌드-가이드-developer-build-guide)
+8. [라이선스 및 크레딧](#8-라이선스-및-크레딧)
 
 ---
 
-## 1. 설치 및 INI 파일 로딩 구조
+## 1. 성능 비교 영상 (Performance Demonstration)
+
+아래 영상은 기존 레거시 런타임(`d3dx9_27.dll`)과 최적화된 DxWrapper(`d3d9.dll`) 환경에서 카트라이더 실행 시의 프레임 타임 안정성, 인풋 반응성 및 주기적 스파이크(1.1ms → 1.6ms) 튐 현상 제거 효과를 직접 비교한 녹화 영상입니다.
+
+### 기존 레거시 런타임 (`d3dx9_27.dll`)
+> 레거시 프레젠테이션 환경에서 주기적인 프레임 타임 스파이크(1.1ms → 1.6ms) 및 OS 스케줄러 전환에 따른 미세 버벅임 발생.
+
+https://github.com/user-attachments/assets/2791662b-7665-4540-9d48-99ca38de2f33
+
+### 최적화된 DxWrapper (`d3d9.dll`)
+> OS 동적 Sleep 가로채기, MMCSS 실시간 렌더 스레드 승격, DWM 우회를 통해 스파이크 없이 약 1.1ms (900+ FPS)로 완벽하게 평탄화된 프레임 페이싱 유지.
+
+https://github.com/user-attachments/assets/7d7afbc1-af99-4283-916f-f025c07ac0d6
+
+---
+
+## 2. 설치 및 INI 파일 로딩 구조
 
 ### 배포 및 설치
 1. **기존 레거시 DLL 삭제**: 게임 설치 폴더에 기존 `d3dx9_27.dll` 파일이 존재할 경우 **반드시 삭제**해 주십시오. 구버전 또는 비정상적인 `d3dx9_27.dll`이 게임 폴더에 남아있으면 DirectX 런타임 로딩 간섭으로 인해 실행 오류나 렌더링 충돌이 발생할 수 있습니다.
@@ -34,7 +51,7 @@ DirectX 9 및 구형 DirectX 기반 게임을 최신 Windows 10/11 환경에서 
 
 ---
 
-## 2. 주요 설정 (Major Settings)
+## 3. 주요 설정 (Major Settings)
 
 렌더링 파이프라인의 핵심 인터페이스 및 디스플레이 프레젠테이션 모델을 결정하는 파라미터입니다.
 
@@ -82,7 +99,7 @@ DirectX 9 및 구형 DirectX 기반 게임을 최신 Windows 10/11 환경에서 
 
 ---
 
-## 3. 추가 설정 - 성능 및 초저지연 (Advanced Latency & Performance)
+## 4. 추가 설정 - 성능 및 초저지연 (Advanced Latency & Performance)
 
 간헐적인 프레임 스파이크를 없애고 CPU/GPU 하드웨어 자원을 상시 100% 렌더링에 집중시키기 위해 본 에디션에서 독자 구현된 초저지연 기능입니다.
 
@@ -130,7 +147,7 @@ DirectX 9 및 구형 DirectX 기반 게임을 최신 Windows 10/11 환경에서 
 
 ---
 
-## 4. 부가 설정 (Supplementary Settings)
+## 5. 부가 설정 (Supplementary Settings)
 
 ### 디스플레이 및 그래픽 품질 제어
 - **`EnableVSync = 0`**: 수직동기화를 해제하고 즉시 화면에 프레임을 송출합니다(`D3DPRESENT_INTERVAL_IMMEDIATE`).
@@ -145,7 +162,7 @@ DirectX 9 및 구형 DirectX 기반 게임을 최신 Windows 10/11 환경에서 
 
 ---
 
-## 5. 용도별 권장 프리셋 (Recommended Profiles)
+## 6. 용도별 권장 프리셋 (Recommended Profiles)
 
 모든 저지연 최적화(Sleep 마이크로스핀, MMCSS 우선순위 부스트, 전원 스로틀링 해제 등)는 공통으로 적용되며, **두 프로필 간의 유일한 차이는 `DisableMaxWindowedMode` 값 하나뿐**입니다.
 
@@ -194,7 +211,7 @@ DisableMaxWindowedMode     = 0
 
 ---
 
-## 6. 개발자 빌드 가이드 (Developer Build Guide)
+## 7. 개발자 빌드 가이드 (Developer Build Guide)
 
 본 프로젝트는 MSVC v145 (Visual Studio 2026 / 2022) x86 환경에서 불필요한 외부 의존성을 제거하고 650KB 대의 초경량 단일 바이너리로 컴파일되도록 빌드 파이프라인이 구성되어 있습니다.
 
@@ -210,7 +227,7 @@ build_d3d9.bat
 
 ---
 
-## 7. 라이선스 및 크레딧
+## 8. 라이선스 및 크레딧
 
 본 소프트웨어는 zlib 라이선스 하에 배포됩니다.
 
