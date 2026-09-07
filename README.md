@@ -22,9 +22,10 @@ Tailored and battle-tested for high-refresh-rate (144Hz to 240Hz+) competitive e
 ## 1. Installation and Configuration Hierarchy
 
 ### Deployment
-1. Copy the compiled `d3d9.dll` and configuration file (`d3d9.ini`) into the directory containing your game executable (e.g., `KartRider.exe`).
-2. When the game launches, `d3d9.dll` is automatically loaded into the process, intercepting Direct3D calls and accelerating the rendering pipeline.
-3. **Zero-Config Standalone Execution**: Even if `d3d9.ini` is omitted, the DLL internally initializes with hardcoded competitive low-latency defaults (`FlipEx=1`, `DisableDynamicSleep=1`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`).
+1. **Remove Legacy DLL**: If `d3dx9_27.dll` exists in your game directory, **delete it**. Retaining a legacy or mismatched `d3dx9_27.dll` in the local game folder can interfere with DirectX runtime loading and cause crash or rendering issues.
+2. Copy the compiled `d3d9.dll` and configuration file (`d3d9.ini`) into the directory containing your game executable (e.g., `KartRider.exe`).
+3. When the game launches, `d3d9.dll` is automatically loaded into the process, intercepting Direct3D calls and accelerating the rendering pipeline.
+4. **Zero-Config Standalone Execution**: Even if `d3d9.ini` is omitted, the DLL internally initializes with hardcoded competitive low-latency defaults (`FlipEx=1`, `DisableDynamicSleep=1`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`).
 
 ### Configuration Search Order
 For maximum compatibility and per-game flexibility, the wrapper searches for configuration files in the following order:
