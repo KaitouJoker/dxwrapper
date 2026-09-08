@@ -1951,6 +1951,16 @@ HRESULT m_IDirect3DDevice9Ex::SetStreamSource(THIS_ UINT StreamNumber, IDirect3D
 
 	if (pStreamData)
 	{
+		// Fix some games that write to the vertex buffer outside of the Lock/Unlock pair (eg. Rayman 3)
+		if (Config.ForceSystemMemVertexCache)
+		{
+			void* pData = nullptr;
+			if (SUCCEEDED(pStreamData->Lock(0, 0, &pData, 0)))
+			{
+				pStreamData->Unlock();
+			}
+		}
+
 		pStreamData = static_cast<m_IDirect3DVertexBuffer9*>(pStreamData)->GetProxyInterface();
 	}
 
