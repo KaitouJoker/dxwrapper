@@ -31,11 +31,13 @@
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
 #include "Wrappers\wrapper.h"
+#ifndef DXGI_ONLY
 #include "ddraw\ddrawExternal.h"
 #include "d3d8\d3d8External.h"
 #include "d3d9\d3d9External.h"
 #include "External\Hooking\Hook.h"
 #include "External\Hooking\Disasm.h"
+#endif
 #include "Libraries\ScopeGuard.h"
 #include "Logging\Logging.h"
 
@@ -571,6 +573,220 @@ HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttribute
 	}
 
 	return CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
+}
+
+FARPROC Utils::Sleep_out = nullptr;
+FARPROC Utils::SleepEx_out = nullptr;
+typedef void(WINAPI* SleepProc)(DWORD dwMilliseconds);
+typedef DWORD(WINAPI* SleepExProc)(DWORD dwMilliseconds, BOOL bAlertable);
+
+void Utils::RealSleep(DWORD dwMilliseconds)
+{
+	SleepProc realSleep = reinterpret_cast<SleepProc>(Sleep_out);
+	if (realSleep)
+	{
+		realSleep(dwMilliseconds);
+	}
+	else
+	{
+		::Sleep(dwMilliseconds);
+	}
+}
+
+void WINAPI Utils::kernel_Sleep(DWORD dwMilliseconds)
+{
+	if (Config.DisableDynamicSleep)
+	{
+		// Sleep(0) is a thread yield: replace with CPU pause to keep time slice and core affinity
+		if (dwMilliseconds == 0)
+		{
+			YieldProcessor();
+			return;
+		}
+
+		// Micro-sleeps (<= 2ms) to throttle frame rates: micro-spin with QPC instead of kernel sleep
+		if (dwMilliseconds <= 2)
+		{
+			static const LARGE_INTEGER qpcFreq = []() {
+				LARGE_INTEGER freq = {};
+				QueryPerformanceFrequency(&freq);
+				return freq;
+			}();
+
+			LARGE_INTEGER start = {}, current = {};
+			QueryPerformanceCounter(&start);
+			LONGLONG targetTicks = (qpcFreq.QuadPart * dwMilliseconds) / 1000;
+			while (true)
+			{
+				QueryPerformanceCounter(&current);
+				if (current.QuadPart - start.QuadPart >= targetTicks)
+				{
+					break;
+				}
+				YieldProcessor();
+			}
+			return;
+		}
+	}
+
+	DEFINE_STATIC_PROC_ADDRESS(SleepProc, Sleep, Sleep_out);
+	if (Sleep)
+	{
+		Sleep(dwMilliseconds);
+	}
+}
+
+DWORD WINAPI Utils::kernel_SleepEx(DWORD dwMilliseconds, BOOL bAlertable)
+{
+	if (Config.DisableDynamicSleep && !bAlertable)
+	{
+		if (dwMilliseconds == 0)
+		{
+			YieldProcessor();
+			return 0;
+		}
+		if (dwMilliseconds <= 2)
+		{
+			kernel_Sleep(dwMilliseconds);
+			return 0;
+		}
+	}
+
+	DEFINE_STATIC_PROC_ADDRESS(SleepExProc, SleepEx, SleepEx_out);
+	if (SleepEx)
+	{
+		return SleepEx(dwMilliseconds, bAlertable);
+	}
+	return 0;
+}
+
+void Utils::OptimizeRenderThread()
+{
+	static thread_local bool s_ThreadOptimized = false;
+	if (s_ThreadOptimized) return;
+	s_ThreadOptimized = true;
+
+	if (Config.BoostRenderThread)
+	{
+		HANDLE hThread = GetCurrentThread();
+		// Elevate thread priority to TIME_CRITICAL (level 15)
+		SetThreadPriority(hThread, THREAD_PRIORITY_TIME_CRITICAL);
+		// Prevent Windows scheduler from decaying thread priority
+		SetThreadPriorityBoost(hThread, FALSE);
+
+		// MMCSS registration: AvSetMmThreadCharacteristicsA
+		HMODULE hAvrt = LoadLibraryA("Avrt.dll");
+		if (hAvrt)
+		{
+			typedef HANDLE(WINAPI* pfnAvSetMmThreadCharacteristicsA)(LPCSTR TaskName, LPDWORD TaskIndex);
+			pfnAvSetMmThreadCharacteristicsA pAvSetMmThreadCharacteristicsA =
+				(pfnAvSetMmThreadCharacteristicsA)GetProcAddress(hAvrt, "AvSetMmThreadCharacteristicsA");
+			if (pAvSetMmThreadCharacteristicsA)
+			{
+				DWORD taskIndex = 0;
+				HANDLE hMmcss = pAvSetMmThreadCharacteristicsA("Games", &taskIndex);
+				if (hMmcss)
+				{
+					Logging::Log() << __FUNCTION__ << " Successfully registered render thread with MMCSS 'Games'";
+				}
+			}
+		}
+
+		if (Config.RenderThreadAffinity != 0)
+		{
+			SetThreadAffinityMask(hThread, Config.RenderThreadAffinity);
+			Logging::Log() << __FUNCTION__ << " Set render thread affinity mask: 0x" << std::hex << Config.RenderThreadAffinity;
+		}
+	}
+}
+
+#ifndef PROCESS_POWER_THROTTLING_CURRENT_VERSION
+#define PROCESS_POWER_THROTTLING_CURRENT_VERSION 1
+#define PROCESS_POWER_THROTTLING_EXECUTION_SPEED 0x1
+#define PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION 0x4
+typedef struct _PROCESS_POWER_THROTTLING_STATE {
+	ULONG Version;
+	ULONG ControlMask;
+	ULONG StateMask;
+} PROCESS_POWER_THROTTLING_STATE, *PPROCESS_POWER_THROTTLING_STATE;
+#endif
+
+#ifndef ProcessPowerThrottling
+#define ProcessPowerThrottling ((PROCESS_INFORMATION_CLASS)40)
+#endif
+
+void Utils::DisablePowerThrottling()
+{
+	HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+	if (hKernel32)
+	{
+		typedef BOOL(WINAPI* pfnSetProcessInformation)(HANDLE, PROCESS_INFORMATION_CLASS, LPVOID, DWORD);
+		pfnSetProcessInformation pSetProcessInformation = (pfnSetProcessInformation)GetProcAddress(hKernel32, "SetProcessInformation");
+		if (pSetProcessInformation)
+		{
+			PROCESS_POWER_THROTTLING_STATE PowerThrottling = {};
+			PowerThrottling.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+			PowerThrottling.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+			PowerThrottling.StateMask = 0; // Completely disable power throttling
+			if (pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, &PowerThrottling, sizeof(PowerThrottling)))
+			{
+				Logging::Log() << "Successfully disabled Windows Power Throttling (EcoQoS)";
+			}
+		}
+	}
+	SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
+}
+
+void Utils::ApplyPacingLimit(DWORD targetFPS)
+{
+	if (targetFPS == 0) return;
+
+	static LARGE_INTEGER qpcFreq = []() {
+		LARGE_INTEGER freq = {};
+		QueryPerformanceFrequency(&freq);
+		return freq;
+	}();
+
+	static LARGE_INTEGER lastPresentTime = {};
+	if (lastPresentTime.QuadPart == 0)
+	{
+		QueryPerformanceCounter(&lastPresentTime);
+		return;
+	}
+
+	const LONGLONG targetTicks = qpcFreq.QuadPart / targetFPS;
+	LARGE_INTEGER currentTime = {};
+	QueryPerformanceCounter(&currentTime);
+
+	LONGLONG elapsed = currentTime.QuadPart - lastPresentTime.QuadPart;
+	if (elapsed < targetTicks)
+	{
+		LONGLONG remaining = targetTicks - elapsed;
+
+		// Precision sleep for >= 2ms
+		while (remaining > (qpcFreq.QuadPart * 2) / 1000)
+		{
+			DWORD sleepMs = static_cast<DWORD>((remaining * 1000) / qpcFreq.QuadPart) - 1;
+			if (sleepMs > 0)
+			{
+				RealSleep(sleepMs);
+			}
+			QueryPerformanceCounter(&currentTime);
+			elapsed = currentTime.QuadPart - lastPresentTime.QuadPart;
+			if (elapsed >= targetTicks) break;
+			remaining = targetTicks - elapsed;
+		}
+
+		// Micro spin-wait with YieldProcessor
+		while (elapsed < targetTicks)
+		{
+			YieldProcessor();
+			QueryPerformanceCounter(&currentTime);
+			elapsed = currentTime.QuadPart - lastPresentTime.QuadPart;
+		}
+	}
+
+	lastPresentTime = currentTime;
 }
 
 HANDLE WINAPI Utils::kernel_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
@@ -1702,6 +1918,7 @@ DWORD Utils::GetThreadIDByHandle(HANDLE hThread)
 
 void Utils::DisableGameUX()
 {
+#ifndef DXGI_ONLY
 	// Logging
 	Logging::Log() << "Disabling Microsoft Game Explorer...";
 
@@ -1710,6 +1927,7 @@ void Utils::DisableGameUX()
 	HMODULE h_kernel32 = GetModuleHandle("kernel32");
 	InterlockedExchangePointer((PVOID*)&p_CreateProcessA, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessA"), "CreateProcessA", *kernel_CreateProcessA));
 	InterlockedExchangePointer((PVOID*)&p_CreateProcessW, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessW"), "CreateProcessW", *kernel_CreateProcessW));
+#endif
 }
 
 inline static UINT GetValueFromString(wchar_t* str)
@@ -1812,10 +2030,10 @@ bool Utils::SetWndProcFilter(HWND hWnd)
 	LOG_LIMIT(3, __FUNCTION__ << " Setting new WndProc " << hWnd);
 
 	// Store existing WndProc
-	OriginalWndProc = (WNDPROC)GetWindowLong(hWnd, GWL_WNDPROC);
+	OriginalWndProc = (WNDPROC)GetWindowLongPtr(hWnd, GWLP_WNDPROC);
 
 	// Set new WndProc
-	if (!OriginalWndProc || !SetWindowLong(hWnd, GWL_WNDPROC, (LONG)WndProcFilter))
+	if (!OriginalWndProc || !SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WndProcFilter))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to overload WndProc!";
 		OriginalWndProc = nullptr;
@@ -1842,7 +2060,7 @@ bool Utils::RestoreWndProcFilter(HWND hWnd)
 	}
 
 	// Get current WndProc
-	WNDPROC CurrentWndProc = (WNDPROC)GetWindowLong(hWnd, GWL_WNDPROC);
+	WNDPROC CurrentWndProc = (WNDPROC)GetWindowLongPtr(hWnd, GWLP_WNDPROC);
 
 	// Check if WndProc is overloaded
 	if (CurrentWndProc != WndProcFilter)
@@ -1852,7 +2070,7 @@ bool Utils::RestoreWndProcFilter(HWND hWnd)
 	}
 
 	// Resetting WndProc
-	if (!SetWindowLong(hWnd, GWL_WNDPROC, (LONG)OriginalWndProc))
+	if (!SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)OriginalWndProc))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to reset WndProc";
 		return false;

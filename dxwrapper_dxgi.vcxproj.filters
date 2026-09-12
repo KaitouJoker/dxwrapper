@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Dllmain">
+      <UniqueIdentifier>{5bc09532-6862-4403-bce5-01b767e1a0a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wrappers">
+      <UniqueIdentifier>{75433a20-7313-4d29-9e1c-1b75db6897cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxgi">
+      <UniqueIdentifier>{8af32750-4100-4b2e-a102-a398018dc901}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{a23457e0-30fc-48cc-a984-26f316b4cadf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Settings">
+      <UniqueIdentifier>{c1f95f1f-7745-47bd-9ffd-67b4c20d1eb2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Logging">
+      <UniqueIdentifier>{83902b61-6ee7-42ec-9601-3e16804fcd18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External">
+      <UniqueIdentifier>{ab08fa70-8ead-42f9-aaec-e1b6bfae77f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\detours">
+      <UniqueIdentifier>{82e81177-3e10-449a-83b3-3a139eb9f731}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\Logging">
+      <UniqueIdentifier>{5d8772ca-8723-4ffd-a0b5-75b9f545420f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\Hooking.Patterns">
+      <UniqueIdentifier>{6d22ef87-1234-4567-890a-bcdef0123456}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Dllmain\Dllmain.cpp">
+      <Filter>Dllmain</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\dxgi.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="dxgi\dxgi_swapchain.cpp">
+      <Filter>dxgi</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Utils.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\CPUAffinity.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\MyStrings.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\MemoryModule.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Settings\Settings.cpp">
+      <Filter>Settings</Filter>
+    </ClCompile>
+    <ClCompile Include="Settings\ReadParse.cpp">
+      <Filter>Settings</Filter>
+    </ClCompile>
+    <ClCompile Include="Logging\Logging.cpp">
+      <Filter>Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="External\Logging\Logging.cpp">
+      <Filter>External\Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="External\Hooking.Patterns\Hooking.Patterns.cpp">
+      <Filter>External\Hooking.Patterns</Filter>
+    </ClCompile>
+    <ClCompile Include="External\detours\src\detours.cpp">
+      <Filter>External\detours</Filter>
+    </ClCompile>
+    <ClCompile Include="External\detours\src\modules.cpp">
+      <Filter>External\detours</Filter>
+    </ClCompile>
+    <ClCompile Include="External\detours\src\disasm.cpp">
+      <Filter>External\detours</Filter>
+    </ClCompile>
+    <ClCompile Include="External\detours\src\image.cpp">
+      <Filter>External\detours</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Wrappers\dxgi.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="dxgi\dxgi_swapchain.h">
+      <Filter>dxgi</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Utils.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Settings\Settings.h">
+      <Filter>Settings</Filter>
+    </ClInclude>
+    <ClInclude Include="Settings\ReadParse.h">
+      <Filter>Settings</Filter>
+    </ClInclude>
+    <ClInclude Include="Logging\Logging.h">
+      <Filter>Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="External\Logging\Logging.h">
+      <Filter>External\Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="External\Hooking.Patterns\Hooking.Patterns.h">
+      <Filter>External\Hooking.Patterns</Filter>
+    </ClInclude>
+    <ClInclude Include="External\detours\src\detours.h">
+      <Filter>External\detours</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Dllmain\dxgi.def">
+      <Filter>Dllmain</Filter>
+    </None>
+  </ItemGroup>
+</Project>

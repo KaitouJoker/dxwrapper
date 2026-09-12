@@ -14,13 +14,18 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#if !defined(D3D9_ONLY) && !defined(DXGI_ONLY)
 #pragma comment(linker, "/SECTION:.rdata,RW")
+#endif
 
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <Windows.h>
 #include <Shlwapi.h>
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
+#ifndef DXGI_ONLY
 #include "winmm.h"
 #include "GDI\GDI.h"
 #include "GDI\WndProc.h"
@@ -29,9 +34,14 @@
 #include "DDrawCompat\DDrawCompatExternal.h"
 #include "DDrawCompat\v0.3.2\Win32\Version.h"
 #endif // DDRAWCOMPAT
+#else
+#include <mmsystem.h>
+#include <timeapi.h>
+#endif
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
 // Wrappers last
+#ifndef DXGI_ONLY
 #include "IClassFactory\IClassFactory.h"
 #include "Libraries\d3dx9.h"
 #include "d3d9\d3d9External.h"
@@ -40,6 +50,10 @@
 #include "dinput8\dinput8External.h"
 #include "d3d8\d3d8External.h"
 #include "dsound\dsoundExternal.h"
+#endif
+#include "Wrappers\dxgi.h"
+#include "dxgi\dxgi_swapchain.h"
+#include "External\detours\src\detours.h"
 #include "Libraries\ScopeGuard.h"
 #include "dxwrapper.h"
 
@@ -224,6 +238,69 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			return FALSE;
 		}
 
+#ifdef DXGI_ONLY
+		Config.SetConfig();
+		Logging::EnableLogging = !Config.DisableLogging;
+		Logging::InitLog();
+		Logging::Log() << "Starting DXGI Low-Latency Proxy v" << APP_VERSION;
+
+		// 1. Disable Power Throttling / EcoQoS
+		if (Config.DisablePowerThrottling)
+		{
+			Utils::DisablePowerThrottling();
+		}
+
+		// 2. Set sub-millisecond timer resolution (0.5ms)
+		HMODULE hNtDll = GetModuleHandleA("ntdll.dll");
+		if (hNtDll)
+		{
+			typedef LONG(NTAPI* pfnNtSetTimerResolution)(ULONG DesiredResolution, BOOLEAN SetResolution, PULONG CurrentResolution);
+			pfnNtSetTimerResolution pNtSetTimerResolution = (pfnNtSetTimerResolution)GetProcAddress(hNtDll, "NtSetTimerResolution");
+			if (pNtSetTimerResolution)
+			{
+				ULONG curRes = 0;
+				pNtSetTimerResolution(5000, TRUE, &curRes);
+				Logging::Log() << "NtSetTimerResolution(0.5ms) set. Current resolution: " << curRes;
+			}
+		}
+		timeBeginPeriod(1);
+
+		// 3. Disable Dynamic Sleep via Detours
+		if (Config.DisableDynamicSleep)
+		{
+			HMODULE hK32 = GetModuleHandleA("kernel32.dll");
+			if (hK32)
+			{
+				Utils::Sleep_out = GetProcAddress(hK32, "Sleep");
+				Utils::SleepEx_out = GetProcAddress(hK32, "SleepEx");
+				if (Utils::Sleep_out && Utils::SleepEx_out)
+				{
+					DetourTransactionBegin();
+					DetourUpdateThread(GetCurrentThread());
+					DetourAttach(&(PVOID&)Utils::Sleep_out, Utils::kernel_Sleep);
+					DetourAttach(&(PVOID&)Utils::SleepEx_out, Utils::kernel_SleepEx);
+					LONG err = DetourTransactionCommit();
+					if (err == NO_ERROR)
+					{
+						Logging::Log() << "Successfully hooked Sleep and SleepEx via Detours.";
+					}
+					else
+					{
+						Logging::Log() << "Failed to hook Sleep/SleepEx via Detours. Error: " << err;
+					}
+				}
+			}
+		}
+
+		// 4. Preload system DXGI
+		dxgi::Load();
+
+		// 5. Hook D3D11CreateDeviceAndSwapChain
+		HookD3D11();
+
+		return TRUE;
+	}
+#else
 		// Init logs
 		Logging::EnableLogging = !Config.DisableLogging;
 		Logging::InitLog();
@@ -814,8 +891,28 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				TerminateProcess(OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId()), 0);
 			}
 		}
+#endif
 		break;
 	case DLL_PROCESS_DETACH:
+#ifdef DXGI_ONLY
+		if (Config.DisableDynamicSleep && Utils::Sleep_out && Utils::SleepEx_out)
+		{
+			DetourTransactionBegin();
+			DetourUpdateThread(GetCurrentThread());
+			DetourDetach(&(PVOID&)Utils::Sleep_out, Utils::kernel_Sleep);
+			DetourDetach(&(PVOID&)Utils::SleepEx_out, Utils::kernel_SleepEx);
+			DetourTransactionCommit();
+		}
+		timeEndPeriod(1);
+		if (hMutex)
+		{
+			ReleaseMutex(hMutex);
+			hMutex = nullptr;
+		}
+		Logging::Log() << "DXGI Low-Latency Proxy terminated!";
+		Logging::EnableLogging = false;
+		break;
+#else
 		// Run all clean up functions
 		Config.Exiting = true;
 		Logging::Log() << "Quiting DxWrapper";
@@ -873,6 +970,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Logging::Log() << "DxWrapper terminated!";
 		Logging::EnableLogging = false;
 		break;
+#endif
 	}
 	return TRUE;
 }

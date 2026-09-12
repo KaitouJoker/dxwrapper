@@ -101,6 +101,16 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(EnableCursorClip) \
 	visit(EnableDdrawWrapper) \
 	visit(EnableD3d9Wrapper) \
+	visit(EnableDxgiWrapper) \
+	visit(ForceFlipModel) \
+	visit(AllowTearing) \
+	visit(DisableDynamicSleep) \
+	visit(DisablePowerThrottling) \
+	visit(BoostRenderThread) \
+	visit(RenderThreadAffinity) \
+	visit(SetGPUThreadPriority) \
+	visit(MaxFrameLatency) \
+	visit(SpinWaitPacing) \
 	visit(EnableDinput8Wrapper) \
 	visit(EnableDsoundWrapper) \
 	visit(EnableDumpFileCreation) \
@@ -396,6 +406,16 @@ struct CONFIG
 	DWORD AnisotropicFiltering = 0;				// Enable Anisotropic Filtering for d3d9
 	DWORD AntiAliasing = 0;						// Enable AntiAliasing for d3d9 CreateDevice
 	bool FlipEx = false;						// Enable FlipEx presentation mode for D3D9Ex. Disables AntiAliasing
+	bool EnableDxgiWrapper = true;				// Enable DXGI wrapper
+	bool ForceFlipModel = true;					// Promote swapchain to DXGI_SWAP_EFFECT_FLIP_DISCARD
+	bool AllowTearing = true;					// Enable DXGI_PRESENT_ALLOW_TEARING for Hardware: Independent Flip
+	bool DisableDynamicSleep = true;			// Hook Sleep/SleepEx and prevent thread yielding/sleeping
+	bool DisablePowerThrottling = true;			// Completely disable Windows Power Throttling / EcoQoS
+	bool BoostRenderThread = true;				// Boost game render thread priority to TIME_CRITICAL and register with MMCSS
+	DWORD RenderThreadAffinity = 0;				// CPU affinity mask for render thread
+	DWORD SetGPUThreadPriority = 7;				// Set GPU thread scheduling priority (0-7, 7 = real-time)
+	DWORD MaxFrameLatency = 1;					// Maximum pre-rendered frame queue length (1 = minimum latency)
+	bool SpinWaitPacing = true;					// Sub-millisecond spin-wait pacing before present
 	DWORD RealWrapperMode = 0;					// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;				// Memory used for verification before hot patching
 	std::string WinVersionLie = "";				// Using DDrawCompat WinVersionLie to tell the OS a different OS

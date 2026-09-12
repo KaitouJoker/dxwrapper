@@ -547,6 +547,18 @@ void Settings::SetDefaultConfigSettings()
 	// Set defaults
 	Config.FixSpeakerConfigType = true;
 
+	// DXGI and Latency Optimization defaults
+	Config.EnableDxgiWrapper = 1;
+	Config.ForceFlipModel = 1;
+	Config.AllowTearing = 1;
+	Config.DisableDynamicSleep = 1;
+	Config.DisablePowerThrottling = 1;
+	Config.BoostRenderThread = 1;
+	Config.MaxFrameLatency = 1;
+	Config.SetGPUThreadPriority = 7;
+	Config.SpinWaitPacing = 1;
+	Config.DisableLogging = 1;
+
 	// Set other default values
 	Config.LoopSleepTime = 120;
 	Config.WindowSleepTime = 500;

@@ -56,6 +56,7 @@ typedef void(WINAPI* DxWrapperLoggingProc)(const char* LogMessage);
 	VISIT_DLLS_BASIC(visit)
 #endif
 
+#ifndef DXGI_ONLY
 // Wrappers
 #include "d3d8.h"
 #include "d3d9.h"
@@ -63,6 +64,7 @@ typedef void(WINAPI* DxWrapperLoggingProc)(const char* LogMessage);
 #include "dinput.h"
 #include "dinput8.h"
 #include "dsound.h"
+#endif
 #ifdef STUB
 #include "bcrypt.h"
 #include "cryptbase.h"
@@ -102,6 +104,7 @@ typedef void(WINAPI* DxWrapperLoggingProc)(const char* LogMessage);
 	volatile extern FARPROC procName ## _funct; \
 	volatile extern FARPROC procName ## _var;
 
+#ifndef DXGI_ONLY
 namespace ddraw
 {
 	VISIT_PROCS_DDRAW(DECLARE_PROC_VARIABLES);
@@ -141,3 +144,4 @@ namespace ShardProcs
 	VISIT_PROCS_SHAREDPROCS(DECLARE_PROC_VARIABLES);
 	void Load(HMODULE dll);
 }
+#endif

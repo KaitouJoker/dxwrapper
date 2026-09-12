@@ -5,8 +5,14 @@
 #include "Wrappers\wrapper.h"
 #include "External\MemoryModule\MemoryModule.h"
 #include "Logging\Logging.h"
+#include <intrin.h>
+#ifndef DXGI_ONLY
 #ifndef _TIMERAPI_H_
 #include "winmm.h"
+#endif
+#else
+#include <mmsystem.h>
+#include <timeapi.h>
 #endif
 
 #undef LoadLibrary
@@ -53,6 +59,14 @@ namespace Utils
 	BOOL WINAPI kernel_GetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
 	BOOL WINAPI kernel_GetDiskFreeSpaceExA(LPCSTR lpDirectoryName, PULARGE_INTEGER lpFreeBytesAvailableToCaller, PULARGE_INTEGER lpTotalNumberOfBytes, PULARGE_INTEGER lpTotalNumberOfFreeBytes);
 	HANDLE WINAPI kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
+	extern FARPROC Sleep_out;
+	extern FARPROC SleepEx_out;
+	void RealSleep(DWORD dwMilliseconds);
+	void WINAPI kernel_Sleep(DWORD dwMilliseconds);
+	DWORD WINAPI kernel_SleepEx(DWORD dwMilliseconds, BOOL bAlertable);
+	void OptimizeRenderThread();
+	void DisablePowerThrottling();
+	void ApplyPacingLimit(DWORD targetFPS);
 	HANDLE WINAPI kernel_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 	LPVOID WINAPI kernel_HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes);
@@ -122,15 +136,7 @@ namespace Utils
 
 	static inline void my_cpuid(int cpuInfo[4], int function_id)
 	{
-		__asm {
-			mov eax, function_id
-			cpuid
-			mov edi, cpuInfo
-			mov[edi], eax
-			mov[edi + 4], ebx
-			mov[edi + 8], ecx
-			mov[edi + 12], edx
-		}
+		__cpuid(cpuInfo, function_id);
 	}
 
 	inline void BusyWaitYield(DWORD RemainingMS)

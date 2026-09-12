@@ -20,6 +20,7 @@
 
 typedef enum _DDSCAPS2_LOG {} DDSCAPS2_LOG;
 
+#ifndef DXGI_ONLY
 #include <d3d9.h>
 #include <d3d9types.h>
 #include <Dxva.h>
@@ -36,6 +37,7 @@ typedef enum _DDSCAPS2_LOG {} DDSCAPS2_LOG;
 #include <ddstream.h>
 #include <mmdeviceapi.h>
 #include "IClassFactory\IClassFactory.h"
+#endif
 #include "Logging.h"
 
 std::ofstream LOG;
@@ -80,6 +82,14 @@ void Logging::InitLog()
 	Open(wrappername);
 }
 
+std::ostream& operator<<(std::ostream& os, HWND__& hwnd)
+{
+	char name[256] = {};
+	GetClassNameA(&hwnd, name, sizeof(name));
+	return os << "WND(" << static_cast<void*>(&hwnd) << ',' << name << ')';
+}
+
+#ifndef DXGI_ONLY
 std::ostream& operator<<(std::ostream& os, const FLOAT4& data)
 {
 	return Logging::LogStruct(os)
@@ -2751,3 +2761,4 @@ std::ostream& operator<<(std::ostream& os, const TOUCH_HIT_TESTING_INPUT& thti)
 		<< thti.orientation;
 }
 #endif // DDRAWCOMPAT
+#endif // !DXGI_ONLY
