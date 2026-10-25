@@ -2779,19 +2779,39 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 
 namespace
 {
+	static bool IsWritableDword(void* ptr)
+	{
+		MEMORY_BASIC_INFORMATION mbi = {};
+		if (VirtualQuery(ptr, &mbi, sizeof(mbi)) && mbi.State == MEM_COMMIT)
+		{
+			DWORD p = (mbi.Protect & 0xFF);
+			return (p == PAGE_READWRITE || p == PAGE_WRITECOPY || p == PAGE_EXECUTE_READWRITE || p == PAGE_EXECUTE_WRITECOPY);
+		}
+		return false;
+	}
+
+	static inline void SafeWriteDword(volatile DWORD* p, DWORD val)
+	{
+		__try
+		{
+			*p = val;
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+		}
+	}
+
 	static void ResetKartFrameGate()
 	{
 		static volatile DWORD* s_pLastFrameTick = nullptr;
-		static bool s_Searched = false;
+		static int s_RetryCount = 0;
 
-		if (!s_Searched)
+		if (!s_pLastFrameTick && s_RetryCount < 100)
 		{
-			s_Searched = true;
+			s_RetryCount++;
 			// 1) Verify known fixed address in KartRider.exe (0x013f23a8)
 			uintptr_t fixedAddr = 0x013f23a8;
-			MEMORY_BASIC_INFORMATION mbi = {};
-			if (VirtualQuery(reinterpret_cast<LPCVOID>(fixedAddr), &mbi, sizeof(mbi)) &&
-				mbi.State == MEM_COMMIT && (mbi.Protect & (PAGE_READWRITE | PAGE_EXECUTE_READWRITE)))
+			if (IsWritableDword(reinterpret_cast<void*>(fixedAddr)))
 			{
 				s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(fixedAddr);
 			}
@@ -2812,8 +2832,7 @@ namespace
 							codeBase[i + 8] == 0xE9)
 						{
 							uintptr_t targetPtr = *reinterpret_cast<uintptr_t*>(&codeBase[i + 2]);
-							if (VirtualQuery(reinterpret_cast<LPCVOID>(targetPtr), &mbi, sizeof(mbi)) &&
-								mbi.State == MEM_COMMIT && (mbi.Protect & (PAGE_READWRITE | PAGE_EXECUTE_READWRITE)))
+							if (IsWritableDword(reinterpret_cast<void*>(targetPtr)))
 							{
 								s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(targetPtr);
 								break;
@@ -2831,7 +2850,7 @@ namespace
 
 		if (s_pLastFrameTick)
 		{
-			*s_pLastFrameTick = 0xFFFFFFFF;
+			SafeWriteDword(s_pLastFrameTick, 0xFFFFFFFF);
 		}
 	}
 }
