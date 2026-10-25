@@ -2790,23 +2790,26 @@ namespace
 		return false;
 	}
 
-	static inline void SafeWriteDword(volatile DWORD* p, DWORD val)
+	static bool TestWriteDword(volatile DWORD* p, DWORD val)
 	{
 		__try
 		{
 			*p = val;
+			return true;
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER)
 		{
+			return false;
 		}
 	}
 
 	static void ResetKartFrameGate()
 	{
 		static volatile DWORD* s_pLastFrameTick = nullptr;
+		static bool s_Verified = false;
 		static int s_RetryCount = 0;
 
-		if (!s_pLastFrameTick && s_RetryCount < 100)
+		if (!s_Verified && s_RetryCount < 100)
 		{
 			s_RetryCount++;
 			// 1) Verify known fixed address in KartRider.exe (0x013f23a8)
@@ -2844,13 +2847,21 @@ namespace
 
 			if (s_pLastFrameTick)
 			{
-				Logging::Log() << __FUNCTION__ << " Successfully bound KartRider 1ms frame gate at " << (void*)s_pLastFrameTick;
+				if (TestWriteDword(s_pLastFrameTick, 0xFFFFFFFF))
+				{
+					s_Verified = true;
+					Logging::Log() << __FUNCTION__ << " Successfully verified and bound KartRider 1ms frame gate at " << (void*)s_pLastFrameTick;
+				}
+				else
+				{
+					s_pLastFrameTick = nullptr;
+				}
 			}
 		}
 
-		if (s_pLastFrameTick)
+		if (s_Verified)
 		{
-			SafeWriteDword(s_pLastFrameTick, 0xFFFFFFFF);
+			*s_pLastFrameTick = 0xFFFFFFFF;
 		}
 	}
 }
