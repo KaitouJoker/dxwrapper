@@ -157,6 +157,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(MaxFrameLatency) \
 	visit(SpinWaitPacing) \
 	visit(RenderThreadAffinity) \
+	visit(UnlockFrameRate) \
 	visit(MouseMovementFactor) \
 	visit(MouseMovementFactorX) \
 	visit(MouseMovementFactorY) \
@@ -410,6 +411,7 @@ struct CONFIG
 	bool SpinWaitPacing = true;					// Use micro spin-wait on GPU fence instead of kernel sleep
 	bool BypassFpuReset = true;					// Bypass redundant per-frame FPU status checks
 	DWORD RenderThreadAffinity = 0;				// Affinity mask for the render thread (0 = default)
+	DWORD UnlockFrameRate = 0;				// Unlock engine FPS by resetting 1ms frame gate (0 = off, 1 = on)
 	DWORD RealWrapperMode = 0;					// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;				// Memory used for verification before hot patching
 	std::string WinVersionLie = "";				// Using DDrawCompat WinVersionLie to tell the OS a different OS

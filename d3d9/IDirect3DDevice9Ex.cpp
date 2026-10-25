@@ -2777,8 +2777,71 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 	}
 }
 
+namespace
+{
+	static void ResetKartFrameGate()
+	{
+		static volatile DWORD* s_pLastFrameTick = nullptr;
+		static bool s_Searched = false;
+
+		if (!s_Searched)
+		{
+			s_Searched = true;
+			// 1) Verify known fixed address in KartRider.exe (0x013f23a8)
+			uintptr_t fixedAddr = 0x013f23a8;
+			MEMORY_BASIC_INFORMATION mbi = {};
+			if (VirtualQuery(reinterpret_cast<LPCVOID>(fixedAddr), &mbi, sizeof(mbi)) &&
+				mbi.State == MEM_COMMIT && (mbi.Protect & (PAGE_READWRITE | PAGE_EXECUTE_READWRITE)))
+			{
+				s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(fixedAddr);
+			}
+			else
+			{
+				// 2) Dynamic scan fallback for pattern: 39 05 [target] 75 05 E9
+				HMODULE hMain = GetModuleHandleA(nullptr);
+				if (hMain)
+				{
+					PIMAGE_DOS_HEADER dos = reinterpret_cast<PIMAGE_DOS_HEADER>(hMain);
+					PIMAGE_NT_HEADERS nt = reinterpret_cast<PIMAGE_NT_HEADERS>(reinterpret_cast<uint8_t*>(hMain) + dos->e_lfanew);
+					uint8_t* codeBase = reinterpret_cast<uint8_t*>(hMain) + nt->OptionalHeader.BaseOfCode;
+					size_t codeSize = nt->OptionalHeader.SizeOfCode;
+					for (size_t i = 0; i + 9 <= codeSize; ++i)
+					{
+						if (codeBase[i] == 0x39 && codeBase[i + 1] == 0x05 &&
+							codeBase[i + 6] == 0x75 && codeBase[i + 7] == 0x05 &&
+							codeBase[i + 8] == 0xE9)
+						{
+							uintptr_t targetPtr = *reinterpret_cast<uintptr_t*>(&codeBase[i + 2]);
+							if (VirtualQuery(reinterpret_cast<LPCVOID>(targetPtr), &mbi, sizeof(mbi)) &&
+								mbi.State == MEM_COMMIT && (mbi.Protect & (PAGE_READWRITE | PAGE_EXECUTE_READWRITE)))
+							{
+								s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(targetPtr);
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if (s_pLastFrameTick)
+			{
+				Logging::Log() << __FUNCTION__ << " Successfully bound KartRider 1ms frame gate at " << (void*)s_pLastFrameTick;
+			}
+		}
+
+		if (s_pLastFrameTick)
+		{
+			*s_pLastFrameTick = 0xFFFFFFFF;
+		}
+	}
+}
+
 void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
 {
+	if (Config.UnlockFrameRate)
+	{
+		ResetKartFrameGate();
+	}
 	if (UsingShadowBackBuffer())
 	{
 		if (DeviceDetails.BackBufferCount == 1)
