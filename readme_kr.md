@@ -25,14 +25,14 @@ DirectX 9 및 구형 DirectX 기반 게임을 최신 Windows 10/11 환경에서 
 아래 영상은 기존 레거시 런타임(`d3dx9_27.dll`)과 최적화된 DxWrapper(`d3d9.dll`) 환경에서 카트라이더 실행 시의 프레임 타임 안정성, 인풋 반응성 및 주기적 스파이크(1.1ms → 1.6ms) 튐 현상 제거 효과를 직접 비교한 녹화 영상입니다.
 
 ### 기존 레거시 런타임 (`d3dx9_27.dll`)
-> 레거시 프레젠테이션 환경에서 주기적인 프레임 타임 스파이크(1.1ms → 1.6ms) 및 OS 스케줄러 전환에 따른 미세 버벅임 발생.
+> 레거시 프레젠테이션 환경에서 주기적인 프레임 타임 스파이크(0.8ms → 1.6ms) 및 OS 스케줄러 전환에 따른 미세 버벅임 발생.
 
 https://github.com/user-attachments/assets/2791662b-7665-4540-9d48-99ca38de2f33
 
 ### 최적화된 DxWrapper (`d3d9.dll`)
-> OS 동적 Sleep 가로채기, MMCSS 실시간 렌더 스레드 승격, DWM 우회를 통해 스파이크 없이 약 1.1ms (900+ FPS)로 완벽하게 평탄화된 프레임 페이싱 유지.
+> OS 동적 Sleep 가로채기, MMCSS 실시간 렌더 스레드 승격, DWM 우회를 통해 스파이크 없이 약 0.8ms (1500+ FPS)로 완벽하게 평탄화된 프레임 페이싱 유지.
 
-https://github.com/user-attachments/assets/7d7afbc1-af99-4283-916f-f025c07ac0d6
+https://github.com/user-attachments/assets/bb70f855-992b-476a-8d16-837a6ae4bd1e
 
 ---
 
