@@ -149,6 +149,7 @@ https://github.com/user-attachments/assets/bb70f855-992b-476a-8d16-837a6ae4bd1e
 - **동작 원리**:
   - 드라이버가 GPU 백버퍼 큐에 미리 대기시킬 수 있는 최대 프레임 수를 제한합니다.
   - `1`로 설정 시 현재 프레임의 GPU 처리가 완료될 때까지 CPU가 다음 프레임을 준비하지 않도록 동기화하여 키보드/마우스 입력이 화면에 반영되는 **인풋-투-포톤(Input-to-Photon) 지연 시간을 최소화**합니다.
+  - *참고*: Direct3D의 `SetMaximumFrameLatency` API는 Direct3D 9Ex 환경에서만 직접 호출됩니다. D3D9 표준 모드(`D3d9to9Ex = 0`)에서는 그래픽 드라이버 제어판(예: NVIDIA 저지연 모드 'Ultra' / AMD Anti-Lag) 설정을 통해 GPU 큐 대기 프레임이 제어됩니다.
 
 #### `SpinWaitPacing`
 - **값**: `1` (활성화, 기본값) | `0` (비활성화)

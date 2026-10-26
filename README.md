@@ -149,6 +149,7 @@ Custom-engineered latency reduction systems designed to eliminate micro-stutters
 - **Description**:
   - Limits the maximum number of frames the driver can queue ahead in the GPU backbuffer pipeline.
   - Setting this to `1` ensures the CPU does not render subsequent frames until the current frame has cleared the GPU, minimizing **input-to-photon latency**.
+  - *Note*: The Direct3D `SetMaximumFrameLatency` API is only available under Direct3D 9Ex. Under standard Direct3D 9 (`D3d9to9Ex = 0`), maximum queued frames are controlled at the driver level (e.g., NVIDIA Low Latency Mode 'Ultra' / AMD Anti-Lag).
 
 #### `SpinWaitPacing`
 - **Values**: `1` (Enabled, Default) | `0` (Disabled)

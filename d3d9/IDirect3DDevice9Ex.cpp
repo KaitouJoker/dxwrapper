@@ -3758,6 +3758,11 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		}
 	}
 
+	else if (Config.MaxFrameLatency)
+	{
+		LOG_LIMIT(1, __FUNCTION__ << " Note: Direct3D 9 standard mode does not expose SetMaximumFrameLatency API; frame queuing is governed by graphics driver settings (e.g. Low Latency Mode 'Ultra').");
+	}
+
 	Utils::GetScreenSize(DeviceDetails.hMonitor, DeviceDetails.screenWidth, DeviceDetails.screenHeight);
 
 	IsGammaSet = false;
