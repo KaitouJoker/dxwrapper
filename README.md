@@ -30,9 +30,9 @@ The following side-by-side recordings demonstrate the frame stability, input res
 https://github.com/user-attachments/assets/2791662b-7665-4540-9d48-99ca38de2f33
 
 ### DxWrapper (`d3d9.dll`)
-> Completely flat, jitter-free frame pacing locked at ~1.1 ms (900+ FPS) achieved via sleep interception, MMCSS thread priority elevation, and DWM bypass.
+> Completely flat, jitter-free frame pacing locked at ~0.8 ms (1500+ FPS) achieved via sleep interception, MMCSS thread priority elevation, and DWM bypass.
 
-https://github.com/user-attachments/assets/7d7afbc1-af99-4283-916f-f025c07ac0d6
+https://github.com/user-attachments/assets/bb70f855-992b-476a-8d16-837a6ae4bd1e
 
 ---
 
