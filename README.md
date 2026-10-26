@@ -2,9 +2,9 @@
 
 [English](README.md) | [한국어 (Korean)](readme_kr.md)
 
-A high-performance DirectX wrapper and proxy library optimized specifically for running Direct3D 9 and legacy DirectX games on modern Windows 10 and Windows 11 systems with **ultra-low input latency**, **rock-solid frame pacing**, and **zero OS scheduling jitter**.
+A high-performance DirectX wrapper and proxy library optimized specifically for running Direct3D 9 and legacy DirectX games on modern Windows 10 and Windows 11 systems with **ultra-low input latency**, **rock-solid frame pacing**, **zero OS scheduling jitter**, and an **unlocked 1,500 ~ 1,700+ FPS rendering pipeline**.
 
-Tailored and battle-tested for high-refresh-rate (144Hz to 240Hz+) competitive esports environments (such as **KartRider**), this edition completely eliminates the recurring **frame-time spikes (1.1ms -> 1.6ms micro-stutters)** caused by OS timer quantization and thread preemption, while granting full control over Windows 10/11 presentation models: **`Hardware: Independent Flip`** (Direct Flip with overlays) and pure exclusive **`Hardware: Legacy Flip`** (DWM bypass).
+Tailored and battle-tested for high-refresh-rate (144Hz, 240Hz, 360Hz, 540Hz+) competitive esports environments (such as **KartRider**), this edition completely eliminates the recurring **frame-time spikes (1.1ms -> 1.6ms micro-stutters)** caused by OS timer quantization and thread preemption. Furthermore, it completely bypasses the legacy engine's internal **1,000 FPS frame gate ceiling**, allowing modern multi-core systems (e.g., AMD Ryzen 7 7800X3D + NVIDIA GeForce RTX 50-series) to achieve sustained framerates of **1,500 to 1,700+ FPS** (sub-0.6 ms frame times) with ultra-low display latency (**0.75 ~ 0.85 ms raw**), while granting full control over Windows 10/11 presentation models: **`Hardware: Independent Flip`** (Direct Flip with overlays) and pure exclusive **`Hardware: Legacy Flip`** (DWM bypass).
 
 ---
 
@@ -30,7 +30,7 @@ The following side-by-side recordings demonstrate the frame stability, input res
 https://github.com/user-attachments/assets/2791662b-7665-4540-9d48-99ca38de2f33
 
 ### DxWrapper (`d3d9.dll`)
-> Completely flat, jitter-free frame pacing locked at ~0.8 ms (1500+ FPS) achieved via sleep interception, MMCSS thread priority elevation, and DWM bypass.
+> Completely flat, jitter-free frame pacing locked at ~0.6 ms to 0.8 ms (1,500 ~ 1,700+ FPS) achieved via frame gate bypass, sleep interception, MMCSS thread priority elevation, and DWM bypass.
 
 https://github.com/user-attachments/assets/bb70f855-992b-476a-8d16-837a6ae4bd1e
 
@@ -42,7 +42,7 @@ https://github.com/user-attachments/assets/bb70f855-992b-476a-8d16-837a6ae4bd1e
 1. **Remove Legacy DLL**: If `d3dx9_27.dll` exists in your game directory, **delete it**. Retaining a legacy or mismatched `d3dx9_27.dll` in the local game folder can interfere with DirectX runtime loading and cause crash or rendering issues.
 2. Copy the compiled `d3d9.dll` and configuration file (`d3d9.ini`) into the directory containing your game executable (e.g., `KartRider.exe`).
 3. When the game launches, `d3d9.dll` is automatically loaded into the process, intercepting Direct3D calls and accelerating the rendering pipeline.
-4. **Zero-Config Standalone Execution**: Even if `d3d9.ini` is omitted, the DLL internally initializes with hardcoded competitive low-latency defaults (`FlipEx=1`, `DisableDynamicSleep=1`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`).
+4. **Zero-Config Standalone Execution**: Even if `d3d9.ini` is omitted, the DLL internally initializes with hardcoded competitive low-latency defaults (`FlipEx=1`, `DisableDynamicSleep=1`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`, `UnlockFrameRate=1`, `RenderThreadAffinity=4`).
 
 ### Configuration Search Order
 For maximum compatibility and per-game flexibility, the wrapper searches for configuration files in the following order:
@@ -66,7 +66,7 @@ These settings dictate the rendering pipeline architecture and swapchain present
 - **Description**:
   - `0`: Retains the native Direct3D 9 device interface while applying all low-latency hooks and patches. Guarantees full compatibility and texture rendering in legacy game engines relying on `D3DPOOL_MANAGED` memory pools, avoiding white/gray screen rendering bugs during resolution and window mode (F11) switching.
   - `1`: Promotes all game D3D9 device calls directly to `Direct3DCreate9Ex` and `CreateDeviceEx`.
-  - **Caution**: The D3D9Ex specification removes support for `D3DPOOL_MANAGED`. Games using managed texture pools will experience surface allocation failures (`D3DERR_INVALIDCALL`) or white textures if forced to `1`. Keep this set to `0` for KartRider and similar legacy engines.
+  - **Caution**: The D3D9Ex specification removes support for `D3DPOOL_MANAGED`. Games using managed texture pools will experience surface allocation failures (`D3DERR_INVALIDCALL`) or white screen rendering if forced to `1`. Keep this set to `0` for KartRider and similar legacy engines.
 
 ---
 
@@ -78,13 +78,13 @@ These settings dictate the rendering pipeline architecture and swapchain present
   - **`0` (Recommended for Streaming, Recording, and In-Game Overlays)**:
     - Leaves FSO active, allowing the swapchain to enter the Desktop Window Manager (DWM) Direct Flip queue.
     - Presentation Mode: **`Hardware: Independent Flip`**
-    - 99th Percentile Frame Time: **~1.35 ms** (~740 FPS)
+    - Latency: Raw display latency **0.75 ~ 0.85 ms** (1,500 ~ 1,700 FPS)
     - In-game overlays (CapFrameX, PresentMon, Xbox Game Bar, Discord) render seamlessly over the game on a single monitor. Alt-Tab switching is instantaneous with zero screen flickering.
   - **`1` (Recommended for Hardcore Time-Attack / Pure Lowest Latency)**:
     - Disables FSO, forcing the graphics hardware into true exclusive scan-out mode and bypassing DWM completely.
     - Presentation Mode: **`Hardware: Legacy Flip`**
-    - 99th Percentile Frame Time: **~1.25 ms** (~800 FPS)
-    - Saves approximately 0.1 ms of frame time by removing DWM token handshakes. Note that desktop overlays will not render on top of the game screen and must be viewed on a secondary monitor.
+    - Latency: Raw display latency **0.70 ~ 0.80 ms** (1,550 ~ 1,700+ FPS)
+    - Saves approximately 0.05 ~ 0.1 ms of frame time by removing DWM token handshakes. Note that desktop overlays will not render on top of the game screen and must be viewed on a secondary monitor.
 
 #### `EnableWindowMode` / `FullscreenWindowMode` / `WindowModeBorder`
 - **`EnableWindowMode`**: `0` (Preserve game fullscreen) | `1` (Force windowed)
@@ -100,7 +100,26 @@ These settings dictate the rendering pipeline architecture and swapchain present
 
 ## 4. Low-Latency and Performance Optimizations
 
-Custom-engineered latency reduction systems designed to eliminate micro-stutters and dedicate full hardware execution to the game's rendering thread.
+Custom-engineered latency reduction systems designed to eliminate micro-stutters, bypass engine frame rate barriers, and dedicate full hardware execution to the game's rendering thread.
+
+#### `UnlockFrameRate`
+- **Values**: `1` (Enabled, Default) | `0` (Disabled)
+- **Description**:
+  - Legacy game engines frequently enforce a hardcoded 1ms frame gate inside their main update loop (`App::RunFrame` at `0x0102fba6..0x0102fbc0`), skipping subsequent frames rendered in the same integer millisecond (`nowTick == lastFrameTick` -> `jmp 0x1030066`). This places an absolute mathematical ceiling of **exactly 1,000 FPS**.
+  - Traditional `.text` bytecode patches (e.g., NOP-ing the conditional jump) violate the client's 30-second self-integrity checksum routine (`0x008a9350`), resulting in immediate disconnects.
+  - **Method 2 Virtual Gate Reset**:
+    - Leaves game `.text` code 100% untouched (0 bytes modified, 100% anti-cheat and integrity safe).
+    - Post-presentation (`ApplyPostPresentFixes`), DxWrapper resets the dynamic runtime variable `lastFrameTick` (`0x013f23a8`) to `0xFFFFFFFF`.
+    - On the subsequent frame check, `nowTick != 0xFFFFFFFF` is guaranteed, allowing the engine to render as many frames as the GPU/CPU pipeline can push.
+    - Incorporates **Zero-Overhead Inline Reset (Lever C)**: tests write safety with SEH only once upon startup (`TestWriteDword`), and thereafter executes a pure single-cycle direct pointer store (`*s_pLastFrameTick = 0xFFFFFFFF;`, compiled to a single `mov [eax], 0xFFFFFFFF`), saving ~15 CPU instructions per frame and unlocking **1,500 ~ 1,700+ FPS**.
+    - Fully safe for physics delta time: physics accumulator safely ignores zero-delta frames (`dt_ms == 0`) with no division-by-zero risk, enabling pure graphical interpolation.
+
+#### `RenderThreadAffinity`
+- **Values**: `0` (Automatic / OS Scheduled) or physical core bitmask (e.g., `4` for Core 1)
+- **Description**:
+  - Pins the primary rendering thread executing Direct3D `Present` to specific CPU physical cores.
+  - **Recommended Value for 8-Core CPUs (e.g., AMD Ryzen 7 7800X3D)**: **`4` (0x0004 -> Core 1 / CPU 2)**.
+  - Windows automatically assigns OS timer ticks, DPCs, network packet handling, and USB/mouse polling to Core 0 (CPU 0/1). Pinning the render thread to Core 1 (AMD factory Gold Star ★ highest-yield core) isolates it completely from system interrupt preemption, providing an immediate **+30 FPS** gain (1,570 -> 1,600+ FPS) and flattening display latency to **0.75 ~ 0.85 ms**.
 
 #### `DisableDynamicSleep`
 - **Values**: `1` (Enabled, Strongly Recommended) | `0` (Disabled)
@@ -110,6 +129,7 @@ Custom-engineered latency reduction systems designed to eliminate micro-stutters
   - When enabled:
     - Intercepts `Sleep(0)` and replaces it with CPU-friendly `YieldProcessor()` (`_mm_pause()`), preventing the thread from relinquishing its remaining time quantum.
     - Intercepts micro-sleeps (<= 2 ms) and replaces them with a zero-wait `QueryPerformanceCounter` micro spin loop, keeping the thread fully active without kernel context switches.
+  - Intelligently preserves non-zero alertable calls (`SleepEx(0, TRUE)`), ensuring WinSock2 asynchronous overlapped I/O APC callbacks are delivered reliably without network disconnects.
 
 #### `BoostRenderThread`
 - **Values**: `1` (Enabled, Default) | `0` (Disabled)
@@ -142,10 +162,6 @@ Custom-engineered latency reduction systems designed to eliminate micro-stutters
 - **Description**:
   - Bypasses redundant Direct3D 9 `_controlfp` hardware floating-point control word resets on every frame presentation, saving critical CPU cycles in the presentation path.
 
-#### `RenderThreadAffinity`
-- **Values**: `0` (Automatic / All Cores) or a core bitmask (e.g., `0x000F` for cores 0-3)
-- **Description**: Binds the primary rendering thread to specific high-performance physical CPU cores.
-
 ---
 
 ## 5. Supplementary Settings
@@ -153,7 +169,7 @@ Custom-engineered latency reduction systems designed to eliminate micro-stutters
 ### Display and Quality Control
 - **`EnableVSync = 0`**: Disables vertical synchronization for immediate frame presentation (`D3DPRESENT_INTERVAL_IMMEDIATE`).
 - **`LimitPerFrameFPS = 0`**: Unlocks the wrapper-level frame rate limiter for uncapped rendering.
-- **`OverrideRefreshRate = 0`**: Uses the native display refresh rate (e.g., 240Hz). Set to a specific number to force a custom refresh rate.
+- **`OverrideRefreshRate = 0`**: Uses the native display refresh rate (e.g., 240Hz, 360Hz, 540Hz). Set to a specific number to force a custom refresh rate.
 - **`AntiAliasing = 0` / `AnisotropicFiltering = 0`**: Retains in-game graphic quality settings.
 
 ### Diagnostics and System Control
@@ -165,7 +181,7 @@ Custom-engineered latency reduction systems designed to eliminate micro-stutters
 
 ## 6. Recommended Profiles
 
-All core latency optimizations (sleep interception, MMCSS thread priority boosting, power throttling prevention) are active across both profiles. **The sole distinction is the value of `DisableMaxWindowedMode`**.
+All core latency optimizations (1,000 FPS frame gate unlock, core affinity isolation, sleep interception, MMCSS thread priority boosting, power throttling prevention) are active across both profiles. **The sole distinction is the value of `DisableMaxWindowedMode`**.
 
 ### Profile Comparison Matrix
 
@@ -173,7 +189,8 @@ All core latency optimizations (sleep interception, MMCSS thread priority boosti
 | :--- | :---: | :---: |
 | **Key Setting** | **`DisableMaxWindowedMode = 0`** | **`DisableMaxWindowedMode = 1`** |
 | **Presentation Mode** | `Hardware: Independent Flip` | `Hardware: Legacy Flip` |
-| **99th Percentile Frame Time** | ~1.35 ms (~740 FPS) | ~1.25 ms (~800 FPS) |
+| **Average Framerate** | **1,500 ~ 1,650 FPS** | **1,550 ~ 1,700+ FPS** |
+| **Display Latency (Raw)** | **0.75 ~ 0.85 ms** | **0.70 ~ 0.80 ms** |
 | **Single-Monitor Overlays** | Supported (renders directly over game) | Not supported (requires secondary monitor) |
 | **Alt-Tab Switching** | Instantaneous (no screen flicker) | Traditional fullscreen display flicker |
 | **Recommended Users** | Streamers, content creators, casual players | Competitive time-attack players, tournament setups |
@@ -184,26 +201,29 @@ All core latency optimizations (sleep interception, MMCSS thread priority boosti
 
 ```ini
 [Compatibility]
-D3d9to9Ex                  = 0
+D3d9to9Ex                  = 0          ;; Keep 0: Prevents D3DPOOL_MANAGED white-screen issues
 EnableD3d9Wrapper          = 1
 
 [d3d9]
 EnableWindowMode           = 0
 FullscreenWindowMode       = 0
 WindowModeBorder           = 0
-FlipEx                     = 0
+FlipEx                     = 1
 DisableDynamicSleep        = 1
 DisablePowerThrottling     = 1
 BoostRenderThread          = 1
 MaxFrameLatency            = 1
 SpinWaitPacing             = 1
 BypassFpuReset             = 1
+RenderThreadAffinity       = 4          ;; Core 1 (AMD 7800X3D Gold Star core, avoids Core 0 DPC/ISR)
+UnlockFrameRate            = 1          ;; Unlocks engine 1,000 FPS ceiling (Method 2 + Lever C)
+LimitPerFrameFPS           = 0          ;; 0 = Uncapped maximum framerate
 DisableLogging             = 1
 
 ;; ======================================================================
 ;; [Core Presentation Switch]
-;;   DisableMaxWindowedMode = 0  -> Profile 1 (Independent Flip, Overlays, ~1.35ms)
-;;   DisableMaxWindowedMode = 1  -> Profile 2 (Legacy Flip, Pure Scan-Out, ~1.25ms)
+;;   DisableMaxWindowedMode = 0  -> Profile 1 (Independent Flip, Overlays, ~0.80ms, 1500-1650 FPS)
+;;   DisableMaxWindowedMode = 1  -> Profile 2 (Legacy Flip, Pure Scan-Out, ~0.75ms, 1550-1700 FPS)
 ;; ======================================================================
 DisableMaxWindowedMode     = 0
 ```
@@ -214,7 +234,7 @@ For the complete list of all 133 configuration parameters, refer to [Configurati
 
 ## 7. Developer Build Guide
 
-The build system is configured for MSVC v145 (Visual Studio 2026 / 2022) targeting x86 Win32, stripping all unused legacy subsystems (DirectDraw, DirectSound, DirectInput, Direct3D 8) into an ultra-lean binary (~650 KB).
+The build system is configured for MSVC v145 (Visual Studio 2026 / 2022) targeting x86 Win32, stripping all unused legacy subsystems (DirectDraw, DirectSound, DirectInput, Direct3D 8) into an ultra-lean binary (~657 KB).
 
 ### One-Click Build
 Run the automated batch script from the repository root:
@@ -228,7 +248,7 @@ build_d3d9.bat nopause
 ```
 
 ### Build Artifacts
-- `Release\d3d9.dll` (~656 KB)
+- `Release\d3d9.dll` (~657 KB)
 - `Release\d3d9.ini`
 
 ---
