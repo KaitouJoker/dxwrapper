@@ -283,8 +283,9 @@ void Settings::SetValue(char* name, char* value, DHEX* setting)
 // Set value for float
 void Settings::SetValue(char* name, char* value, float* setting)
 {
-	float NewValue = std::stof(value);
-	if ( std::abs(*setting - NewValue) > 0.0001f )
+	char* end = nullptr;
+	float NewValue = strtof(value, &end);
+	if (end != value && std::abs(*setting - NewValue) > 0.0001f)
 	{
 		*setting = NewValue;
 #ifdef _DEBUG
@@ -298,8 +299,9 @@ void Settings::SetValue(char* name, char* value, float* setting)
 // Set value for double
 void Settings::SetValue(char* name, char* value, double* setting)
 {
-	double NewValue = std::stod(value);
-	if ( std::abs(*setting - NewValue) > 0.0001 )
+	char* end = nullptr;
+	double NewValue = strtod(value, &end);
+	if (end != value && std::abs(*setting - NewValue) > 0.0001)
 	{
 		*setting = NewValue;
 #ifdef _DEBUG
