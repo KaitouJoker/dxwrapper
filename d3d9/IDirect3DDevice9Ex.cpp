@@ -2881,7 +2881,13 @@ namespace
 				else
 				{
 					s_pLastFrameTick = nullptr;
+					s_RetryCount = 100;
 				}
+			}
+			else
+			{
+				// Abort subsequent frame scans if codeBase pattern scan failed
+				s_RetryCount = 100;
 			}
 		}
 
