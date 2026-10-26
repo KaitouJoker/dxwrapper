@@ -665,9 +665,10 @@ void Utils::OptimizeRenderThread()
 	if (s_ThreadOptimized) return;
 	s_ThreadOptimized = true;
 
+	HANDLE hThread = GetCurrentThread();
+
 	if (Config.BoostRenderThread)
 	{
-		HANDLE hThread = GetCurrentThread();
 		// Elevate thread priority to TIME_CRITICAL (level 15)
 		SetThreadPriority(hThread, THREAD_PRIORITY_TIME_CRITICAL);
 		// Prevent Windows scheduler from decaying thread priority
@@ -690,12 +691,12 @@ void Utils::OptimizeRenderThread()
 				}
 			}
 		}
+	}
 
-		if (Config.RenderThreadAffinity != 0)
-		{
-			SetThreadAffinityMask(hThread, Config.RenderThreadAffinity);
-			Logging::Log() << __FUNCTION__ << " Set render thread affinity mask: 0x" << std::hex << Config.RenderThreadAffinity;
-		}
+	if (Config.RenderThreadAffinity != 0)
+	{
+		SetThreadAffinityMask(hThread, Config.RenderThreadAffinity);
+		Logging::Log() << __FUNCTION__ << " Set render thread affinity mask: 0x" << std::hex << Config.RenderThreadAffinity;
 	}
 }
 
