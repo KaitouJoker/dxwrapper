@@ -2815,49 +2815,62 @@ namespace
 			return false;
 		}
 	}
-
+	static bool IsKartRiderProcess()
+	{
+		char exePath[MAX_PATH] = {};
+		if (GetModuleFileNameA(nullptr, exePath, MAX_PATH))
+		{
+			for (char* p = exePath; *p; ++p)
+			{
+				*p = static_cast<char>(tolower(*p));
+			}
+			if (strstr(exePath, "kartrider") || strstr(exePath, "kart"))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 	static void ResetKartFrameGate()
 	{
 		static volatile DWORD* s_pLastFrameTick = nullptr;
 		static bool s_Verified = false;
 		static int s_RetryCount = 0;
-
 		if (!s_Verified && s_RetryCount < 100)
 		{
 			s_RetryCount++;
-			// 1) Verify known fixed address in KartRider.exe (0x013f23a8)
-			uintptr_t fixedAddr = 0x013f23a8;
-			if (IsWritableDword(reinterpret_cast<void*>(fixedAddr)))
+			// 1) Dynamic scan prioritized: pattern 39 05 [target] 75 05 E9 (cmp [target], eax; jne +5; jmp)
+			HMODULE hMain = GetModuleHandleA(nullptr);
+			if (hMain)
 			{
-				s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(fixedAddr);
-			}
-			else
-			{
-				// 2) Dynamic scan fallback for pattern: 39 05 [target] 75 05 E9
-				HMODULE hMain = GetModuleHandleA(nullptr);
-				if (hMain)
+				PIMAGE_DOS_HEADER dos = reinterpret_cast<PIMAGE_DOS_HEADER>(hMain);
+				PIMAGE_NT_HEADERS nt = reinterpret_cast<PIMAGE_NT_HEADERS>(reinterpret_cast<uint8_t*>(hMain) + dos->e_lfanew);
+				uint8_t* codeBase = reinterpret_cast<uint8_t*>(hMain) + nt->OptionalHeader.BaseOfCode;
+				size_t codeSize = nt->OptionalHeader.SizeOfCode;
+				for (size_t i = 0; i + 9 <= codeSize; ++i)
 				{
-					PIMAGE_DOS_HEADER dos = reinterpret_cast<PIMAGE_DOS_HEADER>(hMain);
-					PIMAGE_NT_HEADERS nt = reinterpret_cast<PIMAGE_NT_HEADERS>(reinterpret_cast<uint8_t*>(hMain) + dos->e_lfanew);
-					uint8_t* codeBase = reinterpret_cast<uint8_t*>(hMain) + nt->OptionalHeader.BaseOfCode;
-					size_t codeSize = nt->OptionalHeader.SizeOfCode;
-					for (size_t i = 0; i + 9 <= codeSize; ++i)
+					if (codeBase[i] == 0x39 && codeBase[i + 1] == 0x05 &&
+						codeBase[i + 6] == 0x75 && codeBase[i + 7] == 0x05 &&
+						codeBase[i + 8] == 0xE9)
 					{
-						if (codeBase[i] == 0x39 && codeBase[i + 1] == 0x05 &&
-							codeBase[i + 6] == 0x75 && codeBase[i + 7] == 0x05 &&
-							codeBase[i + 8] == 0xE9)
+						uintptr_t targetPtr = *reinterpret_cast<uintptr_t*>(&codeBase[i + 2]);
+						if (IsWritableDword(reinterpret_cast<void*>(targetPtr)))
 						{
-							uintptr_t targetPtr = *reinterpret_cast<uintptr_t*>(&codeBase[i + 2]);
-							if (IsWritableDword(reinterpret_cast<void*>(targetPtr)))
-							{
-								s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(targetPtr);
-								break;
-							}
+							s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(targetPtr);
+							break;
 						}
 					}
 				}
 			}
-
+			// 2) Fallback to known fixed address (0x013f23a8) ONLY if confirmed KartRider process
+			if (!s_pLastFrameTick && IsKartRiderProcess())
+			{
+				uintptr_t fixedAddr = 0x013f23a8;
+				if (IsWritableDword(reinterpret_cast<void*>(fixedAddr)))
+				{
+					s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(fixedAddr);
+				}
+			}
 			if (s_pLastFrameTick)
 			{
 				if (TestWriteDword(s_pLastFrameTick, 0xFFFFFFFF))
