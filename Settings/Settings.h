@@ -410,8 +410,8 @@ struct CONFIG
 	DWORD MaxFrameLatency = 1;					// Maximum frame latency for D3D9Ex (1 = lowest latency, 2 = stutter-free balance)
 	bool SpinWaitPacing = true;					// Use micro spin-wait on GPU fence instead of kernel sleep
 	bool BypassFpuReset = true;					// Bypass redundant per-frame FPU status checks
-	DWORD RenderThreadAffinity = 0;				// Affinity mask for the render thread (0 = default)
-	DWORD UnlockFrameRate = 0;				// Unlock engine FPS by resetting 1ms frame gate (0 = off, 1 = on)
+	DWORD RenderThreadAffinity = 4;				// Affinity mask for the render thread (4 = Core 1 default)
+	DWORD UnlockFrameRate = 1;				// Unlock engine FPS by resetting 1ms frame gate (0 = off, 1 = on)
 	DWORD RealWrapperMode = 0;					// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;				// Memory used for verification before hot patching
 	std::string WinVersionLie = "";				// Using DDrawCompat WinVersionLie to tell the OS a different OS
