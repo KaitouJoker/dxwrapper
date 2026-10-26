@@ -63,6 +63,8 @@ private:
 	// Low-latency GPU fence pacing
 	IDirect3DQuery9* pEventQuery = nullptr;
 	bool EventQueryIssued = false;
+	void ExecuteSpinWaitPacing();
+	void IssueSpinWaitPacing();
 
 	bool FailedReset = false;
 

@@ -488,6 +488,49 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS* pPresentationParamete
 	return ResetT<fReset>(nullptr, pPresentationParameters, nullptr);
 }
 
+void m_IDirect3DDevice9Ex::ExecuteSpinWaitPacing()
+{
+	if (Config.SpinWaitPacing && ProxyInterface)
+	{
+		if (!pEventQuery)
+		{
+			ProxyInterface->CreateQuery(D3DQUERYTYPE_EVENT, &pEventQuery);
+		}
+
+		if (pEventQuery && EventQueryIssued)
+		{
+			static const LARGE_INTEGER freq = []() {
+				LARGE_INTEGER f = {};
+				QueryPerformanceFrequency(&f);
+				return f;
+			}();
+			// Max spin timeout: 200 microseconds (0.2ms)
+			LONGLONG maxSpinTicks = (freq.QuadPart * 200) / 1000000;
+			LARGE_INTEGER startQpc = {}, curQpc = {};
+			QueryPerformanceCounter(&startQpc);
+
+			while (pEventQuery->GetData(nullptr, 0, 0) == S_FALSE)
+			{
+				YieldProcessor();
+				QueryPerformanceCounter(&curQpc);
+				if (curQpc.QuadPart - startQpc.QuadPart >= maxSpinTicks)
+				{
+					break;
+				}
+			}
+		}
+	}
+}
+
+void m_IDirect3DDevice9Ex::IssueSpinWaitPacing()
+{
+	if (Config.SpinWaitPacing && pEventQuery)
+	{
+		pEventQuery->Issue(D3DISSUE_END);
+		EventQueryIssued = true;
+	}
+}
+
 HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -509,7 +552,11 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDest
 
 	ApplyPrePresentFixes();
 
+	ExecuteSpinWaitPacing();
+
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+
+	IssueSpinWaitPacing();
 
 	if (SUCCEEDED(hr))
 	{
@@ -2273,45 +2320,11 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 
 	ApplyPrePresentFixes();
 
-	// SpinWaitPacing: Micro spin-wait on GPU event query to prevent driver kernel sleep
-	if (Config.SpinWaitPacing && ProxyInterface)
-	{
-		if (!pEventQuery)
-		{
-			ProxyInterface->CreateQuery(D3DQUERYTYPE_EVENT, &pEventQuery);
-		}
-
-		if (pEventQuery && EventQueryIssued)
-		{
-			static const LARGE_INTEGER freq = []() {
-				LARGE_INTEGER f = {};
-				QueryPerformanceFrequency(&f);
-				return f;
-			}();
-			// Max spin timeout: 200 microseconds (0.2ms)
-			LONGLONG maxSpinTicks = (freq.QuadPart * 200) / 1000000;
-			LARGE_INTEGER startQpc = {}, curQpc = {};
-			QueryPerformanceCounter(&startQpc);
-
-			while (pEventQuery->GetData(nullptr, 0, 0) == S_FALSE)
-			{
-				YieldProcessor();
-				QueryPerformanceCounter(&curQpc);
-				if (curQpc.QuadPart - startQpc.QuadPart >= maxSpinTicks)
-				{
-					break;
-				}
-			}
-		}
-	}
+	ExecuteSpinWaitPacing();
 
 	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 
-	if (Config.SpinWaitPacing && pEventQuery)
-	{
-		pEventQuery->Issue(D3DISSUE_END);
-		EventQueryIssued = true;
-	}
+	IssueSpinWaitPacing();
 
 	if (SUCCEEDED(hr))
 	{
