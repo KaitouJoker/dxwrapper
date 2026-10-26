@@ -25,7 +25,7 @@ Tailored and battle-tested for high-refresh-rate (144Hz to 240Hz+) competitive e
 The following side-by-side recordings demonstrate the frame stability, input responsiveness, and elimination of periodic 1.1ms -> 1.6ms frame-time spikes in KartRider when running with DxWrapper versus the legacy DirectX runtime.
 
 ### Original (`d3dx9_27.dll`)
-> Noticeable periodic frame-time spikes (1.1 ms -> 1.6 ms) and OS scheduler micro-stutters under the legacy presentation pipeline.
+> Noticeable periodic frame-time spikes (0.8 ms -> 1.6 ms) and OS scheduler micro-stutters under the legacy presentation pipeline.
 
 https://github.com/user-attachments/assets/2791662b-7665-4540-9d48-99ca38de2f33
 
