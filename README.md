@@ -4,7 +4,7 @@
 
 A high-performance DirectX wrapper and proxy library optimized specifically for running Direct3D 9 and legacy DirectX games on modern Windows 10 and Windows 11 systems with **ultra-low input latency**, **rock-solid frame pacing**, **zero OS scheduling jitter**, and an **unlocked 1,500 ~ 1,700+ FPS rendering pipeline**.
 
-Tailored and battle-tested for high-refresh-rate (144Hz, 240Hz, 360Hz, 540Hz+) competitive esports environments (such as **KartRider**), this edition completely eliminates the recurring **frame-time spikes (1.1ms -> 1.6ms micro-stutters)** caused by OS timer quantization and thread preemption. Furthermore, it completely bypasses the legacy engine's internal **1,000 FPS frame gate ceiling**, allowing modern multi-core systems (e.g., AMD Ryzen 7 7800X3D + NVIDIA GeForce RTX 50-series) to achieve sustained framerates of **1,500 to 1,700+ FPS** (sub-0.6 ms frame times) with ultra-low display latency (**0.75 ~ 0.85 ms raw**), while granting full control over Windows 10/11 presentation models: **`Hardware: Independent Flip`** (Direct Flip with overlays) and pure exclusive **`Hardware: Legacy Flip`** (DWM bypass).
+Tailored and battle-tested for high-refresh-rate (144Hz, 240Hz, 360Hz, 540Hz+) competitive esports environments (such as **KartRider**), this edition completely eliminates the recurring **frame-time spikes (0.8ms -> 1.6ms micro-stutters)** caused by OS timer quantization and thread preemption. Furthermore, it completely bypasses the legacy engine's internal **1,000 FPS frame gate ceiling**, allowing modern multi-core systems (e.g., AMD Ryzen 7 7800X3D + NVIDIA GeForce RTX 50-series) to achieve sustained framerates of **1,500 to 1,700+ FPS** (sub-0.6 ms frame times) with ultra-low display latency (**0.75 ~ 0.85 ms raw**), while granting full control over Windows 10/11 presentation models: **`Hardware: Independent Flip`** (Direct Flip with overlays) and pure exclusive **`Hardware: Legacy Flip`** (DWM bypass).
 
 ---
 
@@ -22,7 +22,7 @@ Tailored and battle-tested for high-refresh-rate (144Hz, 240Hz, 360Hz, 540Hz+) c
 
 ## 1. Performance Demonstration (Video)
 
-The following side-by-side recordings demonstrate the frame stability, input responsiveness, and elimination of periodic 1.1ms -> 1.6ms frame-time spikes in KartRider when running with DxWrapper versus the legacy DirectX runtime.
+The following side-by-side recordings demonstrate the frame stability, input responsiveness, and elimination of periodic 0.8ms -> 1.6ms frame-time spikes in KartRider when running with DxWrapper versus the legacy DirectX runtime.
 
 ### Original (`d3dx9_27.dll`)
 > Noticeable periodic frame-time spikes (0.8 ms -> 1.6 ms) and OS scheduler micro-stutters under the legacy presentation pipeline.
@@ -125,7 +125,7 @@ Custom-engineered latency reduction systems designed to eliminate micro-stutters
 - **Values**: `1` (Enabled, Strongly Recommended) | `0` (Disabled)
 - **Description**:
   - Legacy game engines frequently call `Sleep(0)` or `Sleep(1)` inside the main rendering loop to curb CPU usage or throttle frame rates.
-  - Due to Windows kernel timer quantization, a `Sleep(1)` call often sleeps for 1.0 ms to 2.0 ms, which is the primary cause of periodic frame times jumping from 1.1 ms to 1.6 ms.
+  - Due to Windows kernel timer quantization, a `Sleep(1)` call often sleeps for 1.0 ms to 2.0 ms, which is the primary cause of periodic frame times jumping from 0.8 ms to 1.6 ms.
   - When enabled:
     - Intercepts `Sleep(0)` and replaces it with CPU-friendly `YieldProcessor()` (`_mm_pause()`), preventing the thread from relinquishing its remaining time quantum.
     - Intercepts micro-sleeps (<= 2 ms) and replaces them with a zero-wait `QueryPerformanceCounter` micro spin loop, keeping the thread fully active without kernel context switches.
