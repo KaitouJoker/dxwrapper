@@ -32,7 +32,7 @@ https://github.com/user-attachments/assets/2791662b-7665-4540-9d48-99ca38de2f33
 ### 최적화된 DxWrapper (`d3d9.dll`)
 > 엔진 1,000 FPS 프레임 게이트 해제, OS 동적 Sleep 가로채기, MMCSS 실시간 렌더 스레드 승격, DWM 우회를 통해 지터 없이 약 0.6ms ~ 0.8ms (1,500 ~ 1,700+ FPS)로 완벽하게 평탄화된 프레임 페이싱 유지.
 
-https://github.com/user-attachments/assets/bb70f855-992b-476a-8d16-837a6ae4bd1e
+https://github.com/user-attachments/assets/2512ed91-a94e-4918-b397-85330732b214
 
 ---
 
