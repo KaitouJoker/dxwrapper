@@ -606,10 +606,13 @@ void WINAPI Utils::kernel_Sleep(DWORD dwMilliseconds)
 {
 	if (Config.DisableDynamicSleep)
 	{
-		// Sleep(0) is a thread yield: replace with CPU pause to keep time slice and core affinity
+		// Sleep(0) is a thread yield: yield quantum to other ready threads of equal priority
 		if (dwMilliseconds == 0)
 		{
-			YieldProcessor();
+			if (!SwitchToThread())
+			{
+				YieldProcessor();
+			}
 			return;
 		}
 
@@ -651,7 +654,10 @@ DWORD WINAPI Utils::kernel_SleepEx(DWORD dwMilliseconds, BOOL bAlertable)
 	{
 		if (dwMilliseconds == 0)
 		{
-			YieldProcessor();
+			if (!SwitchToThread())
+			{
+				YieldProcessor();
+			}
 			return 0;
 		}
 		if (dwMilliseconds <= 2)

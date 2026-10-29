@@ -521,6 +521,7 @@ void m_IDirect3DDevice9Ex::ExecuteSpinWaitPacing()
 					break;
 				}
 			}
+			EventQueryIssued = false;
 		}
 	}
 }
@@ -2823,6 +2824,45 @@ namespace
 		}
 	}
 
+	static uintptr_t ScanKartFrameGateSEH(HMODULE hMain)
+	{
+		__try
+		{
+			PIMAGE_DOS_HEADER dos = reinterpret_cast<PIMAGE_DOS_HEADER>(hMain);
+			if (dos->e_magic != IMAGE_DOS_SIGNATURE)
+			{
+				return 0;
+			}
+			PIMAGE_NT_HEADERS nt = reinterpret_cast<PIMAGE_NT_HEADERS>(reinterpret_cast<uint8_t*>(hMain) + dos->e_lfanew);
+			if (nt->Signature != IMAGE_NT_SIGNATURE)
+			{
+				return 0;
+			}
+			uint8_t* codeBase = reinterpret_cast<uint8_t*>(hMain) + nt->OptionalHeader.BaseOfCode;
+			size_t codeSize = nt->OptionalHeader.SizeOfCode;
+
+			// Pattern: 8B 3D [disp32] FF 15 [disp32] 89 C6 E8 [disp32] 39 F7 0F 84
+			for (size_t i = 0; i + 23 <= codeSize; ++i)
+			{
+				if (codeBase[i] == 0x8B && codeBase[i + 1] == 0x3D &&
+					codeBase[i + 6] == 0xFF && codeBase[i + 7] == 0x15 &&
+					codeBase[i + 12] == 0x89 && codeBase[i + 13] == 0xC6 &&
+					codeBase[i + 14] == 0xE8 &&
+					codeBase[i + 19] == 0x39 && codeBase[i + 20] == 0xF7 &&
+					codeBase[i + 21] == 0x0F && codeBase[i + 22] == 0x84)
+				{
+					int32_t disp = *reinterpret_cast<int32_t*>(&codeBase[i + 2]);
+					return reinterpret_cast<uintptr_t>(&codeBase[i + 6]) + disp;
+				}
+			}
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			return 0;
+		}
+		return 0;
+	}
+
 	static void ResetKartFrameGate()
 	{
 		static volatile DWORD* s_pLastFrameTick = nullptr;
@@ -2834,39 +2874,13 @@ namespace
 			HMODULE hMain = GetModuleHandleA(nullptr);
 			if (hMain)
 			{
-				PIMAGE_DOS_HEADER dos = reinterpret_cast<PIMAGE_DOS_HEADER>(hMain);
-				PIMAGE_NT_HEADERS nt = reinterpret_cast<PIMAGE_NT_HEADERS>(reinterpret_cast<uint8_t*>(hMain) + dos->e_lfanew);
-				uint8_t* codeBase = reinterpret_cast<uint8_t*>(hMain) + nt->OptionalHeader.BaseOfCode;
-				size_t codeSize = nt->OptionalHeader.SizeOfCode;
-
-				// 1) Dynamic scan for x64 KartRider frame gate:
-				// Pattern: 8B 3D [disp32] FF 15 [disp32] 89 C6 E8 [disp32] 39 F7 0F 84
-				// mov edi, [rip + disp32] (last frame tick)
-				// call qword ptr [...]     (current tick -> eax)
-				// mov esi, eax
-				// call ...
-				// cmp edi, esi
-				// je ... (frame skip)
-				for (size_t i = 0; i + 23 <= codeSize; ++i)
+				uintptr_t targetPtr = ScanKartFrameGateSEH(hMain);
+				if (targetPtr && IsWritableDword(reinterpret_cast<void*>(targetPtr)))
 				{
-					if (codeBase[i] == 0x8B && codeBase[i + 1] == 0x3D &&
-						codeBase[i + 6] == 0xFF && codeBase[i + 7] == 0x15 &&
-						codeBase[i + 12] == 0x89 && codeBase[i + 13] == 0xC6 &&
-						codeBase[i + 14] == 0xE8 &&
-						codeBase[i + 19] == 0x39 && codeBase[i + 20] == 0xF7 &&
-						codeBase[i + 21] == 0x0F && codeBase[i + 22] == 0x84)
-					{
-						int32_t disp = *reinterpret_cast<int32_t*>(&codeBase[i + 2]);
-						uintptr_t targetPtr = reinterpret_cast<uintptr_t>(&codeBase[i + 6]) + disp;
-						if (IsWritableDword(reinterpret_cast<void*>(targetPtr)))
-						{
-							s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(targetPtr);
-							break;
-						}
-					}
+					s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(targetPtr);
 				}
 
-				// 2) Fallback to known fixed RVA (0x98179bc) if confirmed KartRider process
+				// Fallback to known fixed RVA (0x98179bc) if confirmed KartRider process
 				if (!s_pLastFrameTick && IsKartRiderProcess())
 				{
 					uintptr_t fixedAddr = reinterpret_cast<uintptr_t>(hMain) + 0x98179bc;
@@ -2887,12 +2901,7 @@ namespace
 				else
 				{
 					s_pLastFrameTick = nullptr;
-					s_RetryCount = 100;
 				}
-			}
-			else
-			{
-				s_RetryCount = 100;
 			}
 		}
 

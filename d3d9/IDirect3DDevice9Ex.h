@@ -60,8 +60,6 @@ private:
 	// Low-latency GPU fence pacing
 	IDirect3DQuery9* pEventQuery = nullptr;
 	bool EventQueryIssued = false;
-	void ExecuteSpinWaitPacing();
-	void IssueSpinWaitPacing();
 
 	bool FailedReset = false;
 
@@ -363,6 +361,8 @@ public:
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
 	DWORD GetMaxAnisotropy() const { return MaxAnisotropy; }
 	void ApplyPostPresentFixes();
+	void ExecuteSpinWaitPacing();
+	void IssueSpinWaitPacing();
 	void InitInterface(void*, REFIID, UINT) {}	// Stub only
 	AddressLookupTableD3d9* GetLookupTable() { return &ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() { return &StateBlockTable; }

@@ -132,8 +132,11 @@ typedef BOOL(WINAPI* pfnSetProcessInformation)(HANDLE hProcess, PROCESS_INFORMAT
 
 static void OptimizeProcessPriority()
 {
-	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	if (Config.BoostRenderThread)
+	{
+		SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	}
 
 	// Lock system and display into continuous active mode (disable screen dimming, idle CPU downclocking)
 	SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);

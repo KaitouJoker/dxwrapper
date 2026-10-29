@@ -86,7 +86,17 @@ HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RE
 		pDirtyRegion = nullptr;
 	}
 
+	if (m_pDeviceEx)
+	{
+		m_pDeviceEx->ExecuteSpinWaitPacing();
+	}
+
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+
+	if (m_pDeviceEx)
+	{
+		m_pDeviceEx->IssueSpinWaitPacing();
+	}
 
 	if (SUCCEEDED(hr) && m_pDeviceEx)
 	{
