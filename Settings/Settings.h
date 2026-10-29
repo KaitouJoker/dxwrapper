@@ -92,6 +92,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DisableDynamicSleep) \
 	visit(DisablePowerThrottling) \
 	visit(BoostRenderThread) \
+	visit(BypassFpuReset) \
 	visit(DisableAntiAliasing) \
 	visit(DisableGameUX) \
 	visit(DisableGDIGammaRamp) \
@@ -412,7 +413,8 @@ struct CONFIG
 	bool BoostRenderThread = true;				// Boost game render thread priority to TIME_CRITICAL and register with MMCSS
 	DWORD MaxFrameLatency = 1;					// Maximum frame latency for D3D9Ex (1 = lowest latency, 2 = stutter-free balance)
 	bool SpinWaitPacing = true;					// Use micro spin-wait on GPU fence instead of kernel sleep
-	DWORD RenderThreadAffinity = 0;				// Affinity mask for the render thread (4 = Core 1 default)
+	bool BypassFpuReset = true;					// Bypass redundant per-frame FPU status checks
+	DWORD RenderThreadAffinity = 4;				// Affinity mask for the render thread (4 = Core 1 default)
 	DWORD UnlockFrameRate = 1;				// Unlock engine FPS by resetting 1ms frame gate (0 = off, 1 = on)
 	DWORD RealWrapperMode = 0;					// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;				// Memory used for verification before hot patching
