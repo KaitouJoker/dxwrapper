@@ -2791,7 +2791,9 @@ namespace
 		char path[MAX_PATH] = {};
 		if (GetModuleFileNameA(nullptr, path, MAX_PATH))
 		{
-			if (strstr(path, "KartRider.exe") || strstr(path, "KartRider_dump.exe"))
+			std::string p(path);
+			for (auto& c : p) c = (char)tolower(c);
+			if (p.find("kartrider.exe") != std::string::npos || p.find("kartrider_dump.exe") != std::string::npos)
 			{
 				return true;
 			}
@@ -2868,11 +2870,10 @@ namespace
 	static void ResetKartFrameGate()
 	{
 		static volatile DWORD* s_pLastFrameTick = nullptr;
-		static bool s_Verified = false;
-		static int s_RetryCount = 0;
-		if (!s_Verified && s_RetryCount < 100)
+		static bool s_Attempted = false;
+		if (!s_Attempted)
 		{
-			s_RetryCount++;
+			s_Attempted = true;
 			HMODULE hMain = GetModuleHandleA(nullptr);
 			if (hMain)
 			{
@@ -2897,7 +2898,6 @@ namespace
 			{
 				if (TestWriteDword(s_pLastFrameTick, 0xFFFFFFFF))
 				{
-					s_Verified = true;
 					Logging::Log() << __FUNCTION__ << " Successfully verified and bound KartRider x64 1ms frame gate at " << (void*)s_pLastFrameTick;
 				}
 				else
@@ -2907,7 +2907,7 @@ namespace
 			}
 		}
 
-		if (s_Verified)
+		if (s_pLastFrameTick)
 		{
 			*s_pLastFrameTick = 0xFFFFFFFF;
 		}
@@ -3022,8 +3022,13 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	static const LONGLONG TicksPerMS = Frequency.QuadPart / 1000;
 
 	// Calculate time per frame in ticks
-	static long double PerFrameFPS = Config.LimitPerFrameFPS;
-	static LONGLONG PerFrameTicks = static_cast<LONGLONG>(static_cast<long double>(Frequency.QuadPart) / PerFrameFPS);
+	static long double LastConfigFPS = 0.0;
+	static LONGLONG PerFrameTicks = 0;
+	if (LastConfigFPS != Config.LimitPerFrameFPS)
+	{
+		LastConfigFPS = Config.LimitPerFrameFPS;
+		PerFrameTicks = (LastConfigFPS > 0.0) ? static_cast<LONGLONG>(static_cast<long double>(Frequency.QuadPart) / LastConfigFPS) : 0;
+	}
 
 	// Get current time
 	LARGE_INTEGER ClickTime = {};

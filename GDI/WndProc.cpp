@@ -40,7 +40,7 @@ namespace WndProc
 	std::atomic<bool> SwitchingResolution = false;
 
 	WNDPROC GetWndProc(HWND hWnd);
-	LONG SetWndProc(HWND hWnd, WNDPROC ProcAddress);
+	LONG_PTR SetWndProc(HWND hWnd, WNDPROC ProcAddress);
 	LRESULT CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 	LRESULT DefWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 	bool IsExecutableAddress(void* address);
@@ -113,10 +113,10 @@ WNDPROC WndProc::GetWndProc(HWND hWnd)
 #endif
 }
 
-LONG WndProc::SetWndProc(HWND hWnd, WNDPROC ProcAddress)
+LONG_PTR WndProc::SetWndProc(HWND hWnd, WNDPROC ProcAddress)
 {
 #ifdef _WIN64
-	return (LONG)(IsWindowUnicode(hWnd) ?
+	return (IsWindowUnicode(hWnd) ?
 		SetWindowLongPtrW(hWnd, GWLP_WNDPROC, (LONG_PTR)ProcAddress) :
 		SetWindowLongPtrA(hWnd, GWLP_WNDPROC, (LONG_PTR)ProcAddress));
 #else

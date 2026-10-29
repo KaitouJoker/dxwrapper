@@ -978,10 +978,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Reset screen back to original Windows settings to fix some display errors on exit
 		Utils::ResetScreenSettings();
 
-		// Release Mutex
+		// Close Mutex
 		if (hMutex)
 		{
-			ReleaseMutex(hMutex);
+			CloseHandle(hMutex);
 			hMutex = nullptr;
 		}
 
