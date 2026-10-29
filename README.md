@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/f270993d-ed86-4d61-a123-00b3e891eb22
 ## 2. Installation and Configuration Hierarchy
 
 ### Deployment
-1. **Clean up Legacy DLLs**: If older wrapper files or unofficial patches exist in your game directory, remove or back them up.
+1. **Remove Legacy DLL**: If `d3dx9_43.dll` exists in your game directory (from legacy wrappers or unofficial patches), **delete it** or back it up. Retaining an outdated or mismatched `d3dx9_43.dll` in the game folder can interfere with DirectX runtime loading and cause crashes or rendering issues.
 2. Copy the compiled 64-bit `d3d9.dll` and configuration file (`d3d9.ini`) into the directory containing your game executable (e.g., `KartRider.exe`).
 3. When the game launches, 64-bit `d3d9.dll` is automatically loaded into the process, intercepting Direct3D calls and accelerating the rendering pipeline.
 4. **Zero-Config Standalone Execution**: Even if `d3d9.ini` is omitted, the DLL internally initializes with hardcoded competitive esports defaults (`FlipEx=1`, `DisableDynamicSleep=0`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`, `UnlockFrameRate=1`, `RenderThreadAffinity=0`, `SetSwapEffectShim=1`, `SpinWaitPacing=0`), operating at full performance out-of-the-box.

@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/f270993d-ed86-4d61-a123-00b3e891eb22
 ## 2. 설치 및 INI 파일 로딩 구조
 
 ### 배포 및 설치
-1. **기존 레거시 DLL 정리**: 게임 설치 폴더에 비공식 패치용으로 남아있는 구형 래퍼 파일이 존재할 경우 삭제하거나 백업해 주십시오.
+1. **기존 레거시 DLL 삭제**: 게임 설치 폴더에 비공식 패치나 레거시 구동용으로 남아있는 `d3dx9_43.dll` 파일이 존재할 경우 **반드시 삭제**하거나 백업해 주십시오. 구버전 또는 비정상적인 `d3dx9_43.dll`이 게임 폴더에 남아있으면 DirectX 런타임 로딩 간섭으로 인해 실행 오류나 렌더링 충돌이 발생할 수 있습니다.
 2. 빌드된 `d3d9.dll`과 설정 파일(`d3d9.ini`)을 게임 실행 파일(예: `KartRider.exe`)이 위치한 폴더에 복사합니다.
 3. 게임 실행 시 64비트 `d3d9.dll`이 프로세스에 자동으로 로드되며 Direct3D 호출을 가로채 하드웨어 파이프라인을 가속합니다.
 4. **Zero-Config 독립 실행**: `d3d9.ini` 설정 파일이 없어도 DLL 내부에 e스포츠 경쟁전 최적화 기본값(`FlipEx=1`, `DisableDynamicSleep=0`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`, `UnlockFrameRate=1`, `RenderThreadAffinity=0`, `SetSwapEffectShim=1`, `SpinWaitPacing=0`)이 하드코딩되어 있어 설정 파일 없이도 동일하게 최대 성능으로 작동합니다.
