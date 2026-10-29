@@ -542,8 +542,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.BoostRenderThread = 1;
 	Config.MaxFrameLatency = 1;
 	Config.SpinWaitPacing = 1;
-	Config.BypassFpuReset = 1;
-	Config.RenderThreadAffinity = 4;
+	Config.RenderThreadAffinity = 0;
 	Config.UnlockFrameRate = 1;
 	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = 0;
 	Config.DdrawHookSystem32 = NOT_EXIST;

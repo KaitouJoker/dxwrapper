@@ -45,7 +45,7 @@ bool WriteMemory::CheckMemoryAddress(void *dataAddr, void *dataBytes, size_t dat
 
 	// VirtualProtect first to make sure patch_address is readable
 	DWORD dwPrevProtect;
-	if (!VirtualProtect(dataAddr, dataSize, PAGE_READONLY, &dwPrevProtect))
+	if (!VirtualProtect(dataAddr, dataSize, PAGE_EXECUTE_READ, &dwPrevProtect))
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Error: could not read memory address";
 		return false;
