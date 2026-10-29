@@ -399,7 +399,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Dynamically load AddVectoredExceptionHandler and RemoveVectoredExceptionHandler
-		if (kernel32)
+		if (kernel32 && (Config.HandleExceptions || Config.EnableDumpFileCreation))
 		{
 			add_handler = (AddHandlerFunc)GetProcAddress(kernel32, "AddVectoredExceptionHandler");
 			remove_handler = (RemoveHandlerFunc)GetProcAddress(kernel32, "RemoveVectoredExceptionHandler");

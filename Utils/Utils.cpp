@@ -617,29 +617,9 @@ void WINAPI Utils::kernel_Sleep(DWORD dwMilliseconds)
 			return;
 		}
 
-		// Micro-sleeps (<= 2ms) to throttle frame rates: micro-spin with QPC instead of kernel sleep
-		if (dwMilliseconds <= 2)
-		{
-			static const LARGE_INTEGER qpcFreq = []() {
-				LARGE_INTEGER freq = {};
-				QueryPerformanceFrequency(&freq);
-				return freq;
-			}();
-
-			LARGE_INTEGER start = {}, current = {};
-			QueryPerformanceCounter(&start);
-			LONGLONG targetTicks = (qpcFreq.QuadPart * dwMilliseconds) / 1000;
-			while (true)
-			{
-				QueryPerformanceCounter(&current);
-				if (current.QuadPart - start.QuadPart >= targetTicks)
-				{
-					break;
-				}
-				YieldProcessor();
-			}
-			return;
-		}
+		// Yield or call RealSleep directly without busy-spinning to prevent CPU core starvation
+		RealSleep(dwMilliseconds);
+		return;
 	}
 
 	DEFINE_STATIC_PROC_ADDRESS(SleepProc, Sleep, Sleep_out);
@@ -746,7 +726,7 @@ void Utils::OptimizeRenderThread()
 	if (Config.BoostRenderThread)
 	{
 		// Safe high priority (level 10) instead of TIME_CRITICAL/MMCSS to avoid 1000ms throttle and thread starvation
-		SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
+		SetThreadPriority(hThread, THREAD_PRIORITY_ABOVE_NORMAL);
 	}
 
 	if (Config.RenderThreadAffinity != 0)

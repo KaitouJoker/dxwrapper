@@ -537,11 +537,11 @@ void Settings::SetDefaultConfigSettings()
 	Config.D3d9to9Ex = 0;
 	Config.FlipEx = 1;
 	Config.DisableLogging = 1;
-	Config.DisableDynamicSleep = 1;
+	Config.DisableDynamicSleep = 0;
 	Config.DisablePowerThrottling = 1;
 	Config.BoostRenderThread = 1;
 	Config.MaxFrameLatency = 1;
-	Config.SpinWaitPacing = 1;
+	Config.SpinWaitPacing = 0;
 	Config.RenderThreadAffinity = 0;
 	Config.UnlockFrameRate = 1;
 	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = 0;
