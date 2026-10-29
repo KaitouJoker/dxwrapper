@@ -541,7 +541,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.DisablePowerThrottling = 1;
 	Config.BoostRenderThread = 1;
 	Config.MaxFrameLatency = 1;
-	Config.SpinWaitPacing = 0;
+	Config.SpinWaitPacing = 1;
 	Config.RenderThreadAffinity = 0;
 	Config.UnlockFrameRate = 1;
 	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = 0;
