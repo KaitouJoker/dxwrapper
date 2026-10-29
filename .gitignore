@@ -39,3 +39,6 @@ ipch/*
 .opendb
 *.opendb
 *.TMP
+
+# Release notes draft
+[Rr]elease.md
