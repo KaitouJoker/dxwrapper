@@ -59,6 +59,7 @@ namespace Utils
 	void RealSleep(DWORD dwMilliseconds);
 	void WINAPI kernel_Sleep(DWORD dwMilliseconds);
 	DWORD WINAPI kernel_SleepEx(DWORD dwMilliseconds, BOOL bAlertable);
+	DWORD_PTR GetPerformanceCoreAffinityMask();
 	void OptimizeRenderThread();
 	HANDLE WINAPI kernel_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);

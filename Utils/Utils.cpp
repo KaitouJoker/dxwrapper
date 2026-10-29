@@ -1,3 +1,4 @@
+#include <vector>
 /**
 * Copyright (C) 2026 Elisha Riedlinger
 *
@@ -675,6 +676,65 @@ DWORD WINAPI Utils::kernel_SleepEx(DWORD dwMilliseconds, BOOL bAlertable)
 	return 0;
 }
 
+DWORD_PTR Utils::GetPerformanceCoreAffinityMask()
+{
+	static DWORD_PTR s_pCoreMask = 0;
+	static bool s_Checked = false;
+	if (s_Checked) return s_pCoreMask;
+	s_Checked = true;
+
+	DWORD length = 0;
+	if (!GetLogicalProcessorInformationEx(RelationProcessorCore, nullptr, &length) &&
+		GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+	{
+		std::vector<uint8_t> buffer(length);
+		PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX info =
+			reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(buffer.data());
+
+		if (GetLogicalProcessorInformationEx(RelationProcessorCore, info, &length))
+		{
+			BYTE maxEfficiency = 0;
+			bool hasHybrid = false;
+
+			uint8_t* ptr = buffer.data();
+			while (ptr < buffer.data() + length)
+			{
+				auto cur = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(ptr);
+				if (cur->Relationship == RelationProcessorCore)
+				{
+					if (cur->Processor.EfficiencyClass > maxEfficiency)
+					{
+						maxEfficiency = cur->Processor.EfficiencyClass;
+						hasHybrid = true;
+					}
+				}
+				ptr += cur->Size;
+			}
+
+			// Hybrid CPU detected (e.g. Intel Alder/Raptor Lake with P-cores and E-cores)
+			if (hasHybrid && maxEfficiency > 0)
+			{
+				DWORD_PTR mask = 0;
+				ptr = buffer.data();
+				while (ptr < buffer.data() + length)
+				{
+					auto cur = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(ptr);
+					if (cur->Relationship == RelationProcessorCore && cur->Processor.EfficiencyClass == maxEfficiency)
+					{
+						for (WORD g = 0; g < cur->Processor.GroupCount; ++g)
+						{
+							mask |= static_cast<DWORD_PTR>(cur->Processor.GroupMask[g].Mask);
+						}
+					}
+					ptr += cur->Size;
+				}
+				s_pCoreMask = mask;
+			}
+		}
+	}
+	return s_pCoreMask;
+}
+
 void Utils::OptimizeRenderThread()
 {
 	static thread_local bool s_ThreadOptimized = false;
@@ -686,7 +746,7 @@ void Utils::OptimizeRenderThread()
 	if (Config.BoostRenderThread)
 	{
 		// Elevate thread priority to TIME_CRITICAL (level 15)
-		SetThreadPriority(hThread, THREAD_PRIORITY_TIME_CRITICAL);
+		SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
 		// Prevent Windows scheduler from decaying thread priority
 		SetThreadPriorityBoost(hThread, FALSE);
 
@@ -713,6 +773,15 @@ void Utils::OptimizeRenderThread()
 	{
 		SetThreadAffinityMask(hThread, Config.RenderThreadAffinity);
 		Logging::Log() << __FUNCTION__ << " Set render thread affinity mask: 0x" << std::hex << Config.RenderThreadAffinity;
+	}
+	else
+	{
+		DWORD_PTR pCoreMask = GetPerformanceCoreAffinityMask();
+		if (pCoreMask != 0)
+		{
+			SetThreadAffinityMask(hThread, pCoreMask);
+			Logging::Log() << __FUNCTION__ << " Intel Hybrid detected: pinned render thread to P-cores mask: 0x" << std::hex << pCoreMask;
+		}
 	}
 }
 

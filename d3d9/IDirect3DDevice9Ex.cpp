@@ -512,10 +512,9 @@ void m_IDirect3DDevice9Ex::ExecuteSpinWaitPacing()
 			LARGE_INTEGER startQpc = {}, curQpc = {};
 			QueryPerformanceCounter(&startQpc);
 
-			DWORD flags = D3DGETDATA_FLUSH;
-			while (pEventQuery->GetData(nullptr, 0, flags) == S_FALSE)
+			// Non-flushing passive query check to prevent GPU pipeline stalls on mid-range GPUs
+			while (pEventQuery->GetData(nullptr, 0, 0) == S_FALSE)
 			{
-				flags = 0;
 				YieldProcessor();
 				QueryPerformanceCounter(&curQpc);
 				if (curQpc.QuadPart - startQpc.QuadPart >= maxSpinTicks)
