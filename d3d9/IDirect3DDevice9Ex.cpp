@@ -507,13 +507,15 @@ void m_IDirect3DDevice9Ex::ExecuteSpinWaitPacing()
 				QueryPerformanceFrequency(&f);
 				return f;
 			}();
-			// Max spin timeout: 200 microseconds (0.2ms)
-			LONGLONG maxSpinTicks = (freq.QuadPart * 200) / 1000000;
+			// Max spin timeout: 500 microseconds (0.5ms)
+			LONGLONG maxSpinTicks = (freq.QuadPart * 500) / 1000000;
 			LARGE_INTEGER startQpc = {}, curQpc = {};
 			QueryPerformanceCounter(&startQpc);
 
-			while (pEventQuery->GetData(nullptr, 0, 0) == S_FALSE)
+			DWORD flags = D3DGETDATA_FLUSH;
+			while (pEventQuery->GetData(nullptr, 0, flags) == S_FALSE)
 			{
+				flags = 0;
 				YieldProcessor();
 				QueryPerformanceCounter(&curQpc);
 				if (curQpc.QuadPart - startQpc.QuadPart >= maxSpinTicks)

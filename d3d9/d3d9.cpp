@@ -181,11 +181,13 @@ static void WINAPI Direct3D9ForceHybridEnumeration(UINT Mode)
 			return;
 		}
 
+#ifndef _WIN64
 		if (memcmp(addr, "\x8B\xFF\x55\x8B\xEC\x8B\x45\x08\xA3", 9) != S_OK)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address: " << Logging::BytesToString(addr, 9);
 			return;
 		}
+#endif
 
 		proc = addr;
 	}
@@ -213,11 +215,13 @@ void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown)
 			return;
 		}
 
+#ifndef _WIN64
 		if (memcmp(addr, "\x8B\xFF\x55\x8B\xEC\x8B\x0D", 7) != S_OK)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address: " << Logging::BytesToString(addr, 7);
 			return;
 		}
+#endif
 
 		proc = addr;
 	}
@@ -303,6 +307,12 @@ static void SetupIDirect3D9()
 	if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
 	{
 		Direct3D9DisableMaximizedWindowedMode();
+	}
+
+	// Enable SwapEffect upgrade shim (DirectFlip / Independent Flip for windowed mode)
+	if (Config.SetSwapEffectShim < 2)
+	{
+		Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 	}
 }
 
