@@ -639,7 +639,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClCompile Include="External\Hooking.Patterns\Hooking.Patterns.cpp" />
     <ClCompile Include="External\Hooking\Disasm.cpp" />
     <ClCompile Include="External\Hooking\Hook.cpp" />
-    <ClCompile Include="External\Hooking\HotPatch.cpp" />
+    <ClCompile Include="Wrappers\HotPatch.cpp" />
     <ClCompile Include="External\Logging\Logging.cpp" />
     <ClCompile Include="GDI\Comdlg32.cpp" />
     <ClCompile Include="GDI\Gdi32.cpp" />

@@ -136,7 +136,7 @@ cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; del Build.txt"
     <ClCompile Include="External\detours\src\image.cpp" />
     <ClCompile Include="External\Hooking\Disasm.cpp" />
     <ClCompile Include="External\Hooking\Hook.cpp" />
-    <ClCompile Include="External\Hooking\HotPatch.cpp" />
+    <ClCompile Include="Wrappers\HotPatch.cpp" />
     <ClCompile Include="External\Hooking.Patterns\Hooking.Patterns.cpp" />
     <ClCompile Include="External\Logging\Logging.cpp" />
     <ClCompile Include="GDI\Comdlg32.cpp" />

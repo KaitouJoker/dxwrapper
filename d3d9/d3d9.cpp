@@ -247,6 +247,23 @@ static void WINAPI Direct3D9DisableMaximizedWindowedMode()
 			return;
 		}
 
+#ifdef _WIN64
+		// x64 Direct3D9EnableMaximizedWindowedModeShim: mov edx, 1 (ba 01 00 00 00)
+		if (memcmp(addr, "\xBA\x01\x00\x00\x00", 5) != S_OK)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to validate memory address: " << Logging::BytesToString(addr, 5);
+			return;
+		}
+
+		DWORD Protect;
+		if (VirtualProtect((LPVOID)((BYTE*)addr + 1), 1, PAGE_EXECUTE_READWRITE, &Protect) == FALSE)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to VirtualProtect memory!";
+			return;
+		}
+		*(BYTE*)((BYTE*)addr + 1) = 0;
+		VirtualProtect((LPVOID)((BYTE*)addr + 1), 1, Protect, &Protect);
+#else
 		if (memcmp(addr, "\x8B\xFF\x55\x8B\xEC\x6A\x01\xFF\x75\x08\xE8", 11) != S_OK)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address: " << Logging::BytesToString(addr, 11);
@@ -261,6 +278,7 @@ static void WINAPI Direct3D9DisableMaximizedWindowedMode()
 		}
 		*(BYTE*)((BYTE*)addr + 6) = 0;
 		VirtualProtect((LPVOID)((BYTE*)addr + 6), 1, Protect, &Protect);
+#endif
 
 		proc = addr;
 	}

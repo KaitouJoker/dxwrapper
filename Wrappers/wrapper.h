@@ -97,8 +97,8 @@ typedef void(WINAPI* DxWrapperLoggingProc)(const char* LogMessage);
 	volatile FARPROC procName ## _out = nullptr;
 
 #define DEFINE_STATIC_PROC_ADDRESS(VarType, VarName, VarAddress) \
-	static VarType VarName = (VarType)0xFFFFFFFF; \
-	if ((DWORD)VarName == 0xFFFFFFFF) \
+	static VarType VarName = (VarType)(intptr_t)-1; \
+	if (VarName == (VarType)(intptr_t)-1) \
 	{ \
 		VarName = Wrapper::ValidProcAddress(VarAddress) ? reinterpret_cast<VarType>(VarAddress) : nullptr; \
 	}

@@ -478,7 +478,7 @@
     <ClCompile Include="External\Hooking\Hook.cpp">
       <Filter>External\Hooking</Filter>
     </ClCompile>
-    <ClCompile Include="External\Hooking\HotPatch.cpp">
+    <ClCompile Include="Wrappers\HotPatch.cpp">
       <Filter>External\Hooking</Filter>
     </ClCompile>
     <ClCompile Include="d3d8\d3d8.cpp">
