@@ -1,3 +1,13 @@
+
+#ifdef _WIN64
+#define REG_IP Rip
+#define REG_CX Rcx
+#define REG_AX Rax
+#else
+#define REG_IP Eip
+#define REG_CX Ecx
+#define REG_AX Eax
+#endif
 /**
 * Copyright (C) 2026 Elisha Riedlinger
 *
@@ -221,7 +231,7 @@ LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 					DWORD oldProtect = 0;
 					if (Config.HandleExceptions == 2)
 					{
-						ExceptionInfo->ContextRecord->Eip += instrLen;
+						ExceptionInfo->ContextRecord->REG_IP += instrLen;
 						Logging::LogFormat(__FUNCTION__ " Skipping instruction and continuing execution.");
 						return EXCEPTION_CONTINUE_EXECUTION;
 					}
@@ -231,7 +241,7 @@ LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 						VirtualProtect(faultAddr, instrLen, oldProtect, &oldProtect);
 						FlushInstructionCache(GetCurrentProcess(), faultAddr, instrLen);
 
-						ExceptionInfo->ContextRecord->Eip += instrLen;
+						ExceptionInfo->ContextRecord->REG_IP += instrLen;
 						Logging::LogFormat(__FUNCTION__ " Patched instruction with NOPs, continuing execution.");
 						return EXCEPTION_CONTINUE_EXECUTION;
 					}
@@ -286,15 +296,15 @@ LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 							"Registers: EIP=0x%08X ECX=0x%08X EAX=0x%08X",
 							rec->ExceptionAddress,
 							moduleName,
-							ctx->Eip,
-							ctx->Ecx,
-							ctx->Eax
+							ctx->REG_IP,
+							ctx->REG_CX,
+							ctx->REG_AX
 						);
 					}
 					__except (EXCEPTION_EXECUTE_HANDLER) {}
 				}
 
-				ExceptionInfo->ContextRecord->Eip += size;
+				ExceptionInfo->ContextRecord->REG_IP += size;
 				return EXCEPTION_CONTINUE_EXECUTION;
 			}
 		}
@@ -348,9 +358,9 @@ LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 						rw,
 						badAddr,
 						moduleName,
-						ctx->Eip,
-						ctx->Ecx,
-						ctx->Eax
+						ctx->REG_IP,
+						ctx->REG_CX,
+						ctx->REG_AX
 					);
 				}
 				else

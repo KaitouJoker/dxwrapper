@@ -25,6 +25,7 @@ HRESULT WINAPI ds_DirectSoundFullDuplexCreate(LPCGUID pcGuidCaptureDevice, LPCGU
 HRESULT WINAPI ds_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv);
 HRESULT WINAPI ds_DllCanUnloadNow();
 
+#ifndef D3D9_ONLY
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*ds_ ## procName;
 
@@ -38,3 +39,5 @@ namespace DsoundWrapper
 }
 
 #undef DECLARE_IN_WRAPPED_PROC
+
+#endif // D3D9_ONLY

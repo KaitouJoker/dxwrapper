@@ -76,7 +76,24 @@ HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RE
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+	Utils::OptimizeRenderThread();
+
+	if (Config.FlipEx)
+	{
+		pSourceRect = nullptr;
+		pDestRect = nullptr;
+		hDestWindowOverride = nullptr;
+		pDirtyRegion = nullptr;
+	}
+
+	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+
+	if (SUCCEEDED(hr) && m_pDeviceEx)
+	{
+		m_pDeviceEx->ApplyPostPresentFixes();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DSwapChain9Ex::GetFrontBufferData(THIS_ IDirect3DSurface9* pDestSurface)

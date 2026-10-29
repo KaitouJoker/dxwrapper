@@ -283,7 +283,9 @@ void Settings::SetValue(char* name, char* value, DHEX* setting)
 // Set value for float
 void Settings::SetValue(char* name, char* value, float* setting)
 {
-	float NewValue = std::stof(value);
+	char* end = nullptr;
+	float NewValue = strtof(value, &end);
+	if (end != value && std::abs(*setting - NewValue) > 0.0001f)
 	if ( std::abs(*setting - NewValue) > 0.0001f )
 	{
 		*setting = NewValue;
@@ -298,7 +300,9 @@ void Settings::SetValue(char* name, char* value, float* setting)
 // Set value for double
 void Settings::SetValue(char* name, char* value, double* setting)
 {
-	double NewValue = std::stod(value);
+	char* end = nullptr;
+	double NewValue = strtod(value, &end);
+	if (end != value && std::abs(*setting - NewValue) > 0.0001)
 	if ( std::abs(*setting - NewValue) > 0.0001 )
 	{
 		*setting = NewValue;
@@ -529,7 +533,19 @@ UINT Settings::GetWrapperMode(std::string *name)
 void Settings::SetDefaultConfigSettings()
 {
 	// Set value to check if it exists in the ini file
-	Config.EnableD3d9Wrapper = NOT_EXIST;
+	Config.EnableD3d9Wrapper = 1;
+	Config.D3d9to9Ex = 0;
+	Config.FlipEx = 1;
+	Config.DisableLogging = 1;
+	Config.DisableDynamicSleep = 1;
+	Config.DisablePowerThrottling = 1;
+	Config.BoostRenderThread = 1;
+	Config.MaxFrameLatency = 1;
+	Config.SpinWaitPacing = 1;
+	Config.BypassFpuReset = 1;
+	Config.RenderThreadAffinity = 4;
+	Config.UnlockFrameRate = 1;
+	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = 0;
 	Config.DdrawHookSystem32 = NOT_EXIST;
 	Config.D3d8HookSystem32 = NOT_EXIST;
 	Config.DinputHookSystem32 = NOT_EXIST;
@@ -650,6 +666,19 @@ void CONFIG::Init()
 		szCfg = ReadFileContent(configpath);
 
 		// Parce config file
+		if (szCfg)
+		{
+			ConfigLoaded = true;
+			Parse(szCfg, ParseCallback);
+			free(szCfg);
+		}
+	}
+
+	// Fallback to dxwrapper.ini if specific ini not found
+	if (!ConfigLoaded && strrchr(configpath, '\\'))
+	{
+		strcpy_s(strrchr(configpath, '\\') + 1, MAX_PATH - (strrchr(configpath, '\\') - configpath + 1), "dxwrapper.ini");
+		szCfg = ReadFileContent(configpath);
 		if (szCfg)
 		{
 			ConfigLoaded = true;

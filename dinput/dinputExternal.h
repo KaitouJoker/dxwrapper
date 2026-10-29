@@ -17,6 +17,7 @@ HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 HRESULT WINAPI di_DllRegisterServer();
 HRESULT WINAPI di_DllUnregisterServer();
 
+#ifndef D3D9_ONLY
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*di_ ## procName;
 
@@ -27,3 +28,5 @@ namespace DinputWrapper
 }
 
 #undef DECLARE_IN_WRAPPED_PROC
+
+#endif // D3D9_ONLY

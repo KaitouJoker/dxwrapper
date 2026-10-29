@@ -23,6 +23,7 @@
 
 //#define TROUBLESHOOT_ORDINAL_PROCS
 
+#ifndef D3D9_ONLY
 namespace dsound
 {
 	extern volatile FARPROC GetDeviceID_var;
@@ -32,10 +33,21 @@ namespace ddraw
 	extern volatile FARPROC DirectDrawCreate_var;
 	extern "C" void __stdcall DirectDrawCreate();
 }
+#endif
 
 #define VISIT_PROCS_BLANK(visit)
 
-#ifdef TROUBLESHOOT_ORDINAL_PROCS
+#if defined(_WIN64)
+
+#define CREATE_PROC_STUB(procName, unused) \
+	volatile FARPROC procName ## _var = nullptr; \
+	volatile FARPROC procName ## _funct = nullptr;
+
+#define CREATE_PROC_STUB_SHARED(procName, procName_shared, unused) \
+	volatile FARPROC procName ## _var = nullptr; \
+	volatile FARPROC procName ## _funct = nullptr;
+
+#elif defined(TROUBLESHOOT_ORDINAL_PROCS)
 
 extern "C" void __stdcall ProcForwarder(const char* name)
 {
@@ -139,6 +151,66 @@ extern "C" void __stdcall ProcForwarder(const char* name)
 #define	LOAD_PROC_STUB_ORDINALS(procName, num, prodAddr) \
 	LOAD_PROC_ORDINALS(procName, num)
 
+#ifdef D3D9_ONLY
+
+#define PROC_CLASS(className, Extension, VISIT_PROCS, VISIT_PROCS_SHARED, VISIT_PROCS_ORDINALS) \
+	namespace className \
+	{ \
+		using namespace Wrapper; \
+		char *Name = #className ## "." ## #Extension; \
+		VISIT_PROCS(CREATE_PROC_STUB); \
+		VISIT_PROCS_SHARED(CREATE_PROC_STUB_SHARED); \
+		VISIT_PROCS_ORDINALS(CREATE_PROC_STUB_ORDINALS); \
+		HMODULE Load(const char *ProxyDll, const char *MyDllName) \
+		{ \
+			char path[MAX_PATH]; \
+			const char *DllName = (MyDllName) ? MyDllName : Name; \
+			HMODULE dll = nullptr; \
+			if (ProxyDll && _stricmp(ProxyDll, DllName) != 0) \
+			{ \
+				Logging::Log() << "Loading '" << ProxyDll << "' as real dll..."; \
+				dll = LoadLibraryA(ProxyDll); \
+				if (!dll) \
+				{ \
+					Logging::Log() << "Error: Failed to load '" << ProxyDll << "'!"; \
+				} \
+			} \
+			if (!dll && _stricmp(Name, DllName) != 0) \
+			{ \
+				Logging::Log() << "Loading '" << Name << "'..."; \
+				dll = LoadLibraryA(Name); \
+			} \
+			if (!dll) \
+			{ \
+				Logging::Log() << "Loading '" << Name << "' from System32..."; \
+				GetSystemDirectoryA(path, MAX_PATH); \
+				strcat_s(path, MAX_PATH, "\\"); \
+				strcat_s(path, MAX_PATH, Name); \
+				dll = LoadLibraryA(path); \
+			} \
+			if (dll) \
+			{ \
+				VISIT_PROCS(LOAD_ORIGINAL_PROC); \
+				VISIT_PROCS_SHARED(LOAD_ORIGINAL_PROC_SHARED); \
+				VISIT_PROCS_ORDINALS(LOAD_PROC_STUB_ORDINALS); \
+			} \
+			else \
+			{ \
+				Logging::Log() << "Error: Failed to load wrapper for '" << Name << "'!"; \
+			} \
+			return dll; \
+		} \
+		void AddToArray() \
+		{ \
+			wrapper_map tmpMap; \
+			VISIT_PROCS(STORE_ORIGINAL_PROC); \
+			VISIT_PROCS_SHARED(STORE_ORIGINAL_PROC_SHARED); \
+			VISIT_PROCS_ORDINALS(STORE_ORIGINAL_PROC_SHARED); \
+		} \
+	}
+
+#else
+
 #define PROC_CLASS(className, Extension, VISIT_PROCS, VISIT_PROCS_SHARED, VISIT_PROCS_ORDINALS) \
 	namespace className \
 	{ \
@@ -201,6 +273,8 @@ extern "C" void __stdcall ProcForwarder(const char* name)
 		} \
 	}
 
+#endif
+
 namespace Wrapper
 {
 	struct wrapper_map
@@ -222,6 +296,17 @@ namespace Wrapper
 
 #include "wrapper.h"
 
+#ifdef _WIN64
+HRESULT __stdcall Wrapper::_jmpaddrvoid()
+{
+	return S_OK;
+}
+
+HRESULT __stdcall Wrapper::_jmpaddr()
+{
+	return (HRESULT)0x80004001L; // E_NOTIMPL
+}
+#else
 __declspec(naked) HRESULT __stdcall Wrapper::_jmpaddrvoid()
 {
 	__asm
@@ -238,6 +323,7 @@ __declspec(naked) HRESULT __stdcall Wrapper::_jmpaddr()
 		retn 16
 	}
 }
+#endif
 
 bool Wrapper::ValidProcAddress(FARPROC ProcAddress)
 {

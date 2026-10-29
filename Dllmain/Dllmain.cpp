@@ -35,11 +35,14 @@
 #include "IClassFactory\IClassFactory.h"
 #include "Libraries\d3dx9.h"
 #include "d3d9\d3d9External.h"
+#ifndef D3D9_ONLY
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
 #include "dinput8\dinput8External.h"
 #include "d3d8\d3d8External.h"
 #include "dsound\dsoundExternal.h"
+#endif
+#include "External\detours\src\detours.h"
 #include "Libraries\ScopeGuard.h"
 #include "dxwrapper.h"
 
@@ -89,6 +92,74 @@ __declspec(dllexport) void WINAPI DxWrapperLogging(const char* LogMessage)
 {
 	Logging::Log() << __FUNCTION__ << " " << LogMessage;
 }
+typedef LONG(NTAPI* pfnNtSetTimerResolution)(ULONG DesiredResolution, BOOLEAN SetResolution, PULONG CurrentResolution);
+static void SetHighResolutionTimer()
+{
+	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+	if (ntdll)
+	{
+		pfnNtSetTimerResolution NtSetTimerResolution = (pfnNtSetTimerResolution)GetProcAddress(ntdll, "NtSetTimerResolution");
+		if (NtSetTimerResolution)
+		{
+			ULONG curRes = 0;
+			// 5000 x 100ns = 0.500ms
+			if (NtSetTimerResolution(5000, TRUE, &curRes) >= 0)
+			{
+				Logging::Log() << "Successfully set NT timer resolution to 0.5ms (current: " << curRes << " x 100ns)";
+			}
+		}
+	}
+	timeBeginPeriod(1);
+}
+
+#ifndef PROCESS_POWER_THROTTLING_CURRENT_VERSION
+#define PROCESS_POWER_THROTTLING_CURRENT_VERSION 1
+#define PROCESS_POWER_THROTTLING_EXECUTION_SPEED 0x1
+#define PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION 0x4
+
+typedef struct _PROCESS_POWER_THROTTLING_STATE {
+	ULONG Version;
+	ULONG ControlMask;
+	ULONG StateMask;
+} PROCESS_POWER_THROTTLING_STATE, *PPROCESS_POWER_THROTTLING_STATE;
+#endif
+
+#ifndef ProcessPowerThrottling
+#define ProcessPowerThrottling (PROCESS_INFORMATION_CLASS)0x28
+#endif
+
+typedef BOOL(WINAPI* pfnSetProcessInformation)(HANDLE hProcess, PROCESS_INFORMATION_CLASS ProcessInformationClass, LPVOID ProcessInformation, DWORD ProcessInformationSize);
+
+static void OptimizeProcessPriority()
+{
+	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+
+	// Lock system and display into continuous active mode (disable screen dimming, idle CPU downclocking)
+	SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
+
+	// Completely disable Windows Power Throttling / EcoQoS / Efficiency Mode
+	if (Config.DisablePowerThrottling)
+	{
+		HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+		if (hKernel32)
+		{
+			pfnSetProcessInformation pSetProcessInformation = (pfnSetProcessInformation)GetProcAddress(hKernel32, "SetProcessInformation");
+			if (pSetProcessInformation)
+			{
+				PROCESS_POWER_THROTTLING_STATE PowerThrottling = {};
+				PowerThrottling.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+				PowerThrottling.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+				PowerThrottling.StateMask = 0; // Disable power throttling
+				if (pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, &PowerThrottling, sizeof(PowerThrottling)))
+				{
+					Logging::Log() << "Successfully disabled Windows Power Throttling (EcoQoS)";
+				}
+			}
+		}
+	}
+}
+
 
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 
@@ -420,7 +491,35 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			Utils::DisableGameUX();
 		}
+		// Disable Dynamic Sleep via Detours x64
+		if (Config.DisableDynamicSleep)
+		{
+			HMODULE hK32 = GetModuleHandleA("kernel32.dll");
+			if (hK32)
+			{
+				Utils::Sleep_out = GetProcAddress(hK32, "Sleep");
+				Utils::SleepEx_out = GetProcAddress(hK32, "SleepEx");
+				if (Utils::Sleep_out && Utils::SleepEx_out)
+				{
+					DetourTransactionBegin();
+					DetourUpdateThread(GetCurrentThread());
+					DetourAttach(&(PVOID&)Utils::Sleep_out, Utils::kernel_Sleep);
+					DetourAttach(&(PVOID&)Utils::SleepEx_out, Utils::kernel_SleepEx);
+					LONG err = DetourTransactionCommit();
+					if (err == NO_ERROR)
+					{
+						Logging::Log() << "Successfully hooked Sleep and SleepEx via Detours.";
+					}
+					else
+					{
+						Logging::Log() << "Failed to hook Sleep/SleepEx via Detours. Error: " << err;
+					}
+				}
+			}
+		}
 
+
+#ifndef D3D9_ONLY
 		// Hook CoCreateInstance
 		if (Config.EnableDdrawWrapper || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8 || Config.EnableDsoundWrapper)
 		{
@@ -628,6 +727,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			VISIT_PROCS_D3D8(SET_WRAPPED_PROC);
 		}
 
+#endif // D3D9_ONLY
 		// Start d3d9.dll module
 		if (Config.EnableD3d9Wrapper || Config.D3d8to9 || Config.Dd7to9)
 		{
@@ -673,7 +773,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Set timer
 		if (!DDrawCompatEnabed)
 		{
-			timeBeginPeriod(1);
+			SetHighResolutionTimer();
+			OptimizeProcessPriority();
 		}
 
 #ifdef DDRAWCOMPAT
@@ -685,12 +786,15 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Win32::Version::installWinLieHooks();
 #endif // DDRAWCOMPAT
 
+#ifndef D3D9_ONLY
 		// Start Dd7to9
 		if (Config.Dd7to9)
 		{
 			InitDDraw();
 		}
-		else if (Config.EnableD3d9Wrapper || Config.D3d8to9 || Config.ForceKeyboardLayout)
+		else
+#endif
+		if (Config.EnableD3d9Wrapper || Config.D3d8to9 || Config.ForceKeyboardLayout)
 		{
 			Logging::Log() << "Installing User32 hooks";
 			HMODULE user32 = GetModuleHandleA("user32.dll");
@@ -816,7 +920,16 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 		}
 		break;
+
 	case DLL_PROCESS_DETACH:
+		if (Config.DisableDynamicSleep && Utils::Sleep_out && Utils::SleepEx_out)
+		{
+			DetourTransactionBegin();
+			DetourUpdateThread(GetCurrentThread());
+			DetourDetach(&(PVOID&)Utils::Sleep_out, Utils::kernel_Sleep);
+			DetourDetach(&(PVOID&)Utils::SleepEx_out, Utils::kernel_SleepEx);
+			DetourTransactionCommit();
+		}
 		// Run all clean up functions
 		Config.Exiting = true;
 		Logging::Log() << "Quiting DxWrapper";
@@ -826,11 +939,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		WriteMemory::StopThread();
 		//Utils::StopPriorityMonitor();
 
+#ifndef D3D9_ONLY
 		// Unload DdrawWrapper
 		if (Config.Dd7to9)
 		{
 			ExitDDraw();
 		}
+#endif
 
 #ifdef DDRAWCOMPAT
 		// Unload and Unhook DDrawCompat

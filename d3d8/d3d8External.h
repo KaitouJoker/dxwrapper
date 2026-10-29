@@ -11,6 +11,7 @@ HRESULT WINAPI d8_ValidatePixelShader(const DWORD* pPixelShader, const D3DCAPS8*
 HRESULT WINAPI d8_ValidateVertexShader(const DWORD* pVertexShader, const DWORD* pDeclaration, const D3DCAPS8* pCaps, BOOL ErrorsFlag, char** Errors);
 Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion);
 
+#ifndef D3D9_ONLY
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*d8_ ## procName;
 
@@ -20,3 +21,5 @@ namespace D3d8Wrapper
 }
 
 #undef DECLARE_IN_WRAPPED_PROC
+
+#endif // D3D9_ONLY

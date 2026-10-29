@@ -756,12 +756,12 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 		return;
 	}
 
-	// Set vsync
+	// Set vsync (Immediate presentation for lowest latency)
 	if (Config.EnableVSync && (Config.ForceVsyncMode || pPresentationParameters->PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE))
 	{
 		pPresentationParameters->PresentationInterval = D3DPRESENT_INTERVAL_ONE;
 	}
-	else if (Config.ForceVsyncMode)
+	else
 	{
 		pPresentationParameters->PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 	}
@@ -794,10 +794,14 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 	// Get Backbuffer count before setting FlipEx (must be at least 1)
 	DeviceDetails.BackBufferCount = max(1, pPresentationParameters->BackBufferCount);
 
+	HWND hTargetWnd = IsWindow(hFocusWindow) ? hFocusWindow :
+		(pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow :
+		DeviceDetails.DeviceWindow;
+
 	// Check for D3D9Ex FlipEx presentation mode
 	if (IsEx && Config.FlipEx)
 	{
-		if (pPresentationParameters->Windowed && IsWindow(hFocusWindow))
+		if (pPresentationParameters->Windowed && (IsWindow(hTargetWnd) || IsWindow(hFocusWindow) || IsWindow(pPresentationParameters->hDeviceWindow)))
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Enabling FlipEx presentation mode!");
 
@@ -812,6 +816,30 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 
 			// Backbuffer (must be at least 2 for FlipEx)
 			pPresentationParameters->BackBufferCount = max(2, pPresentationParameters->BackBufferCount);
+
+			// FlipEx requires 32-bit color format
+			if (pPresentationParameters->BackBufferFormat == D3DFMT_R5G6B5 ||
+				pPresentationParameters->BackBufferFormat == D3DFMT_X1R5G5B5 ||
+				pPresentationParameters->BackBufferFormat == D3DFMT_A1R5G5B5)
+			{
+				pPresentationParameters->BackBufferFormat = D3DFMT_X8R8G8B8;
+			}
+		}
+		else if (pPresentationParameters->Windowed)
+		{
+			pPresentationParameters->MultiSampleType = D3DMULTISAMPLE_NONE;
+			pPresentationParameters->MultiSampleQuality = 0;
+			pPresentationParameters->Flags &= ~(D3DPRESENTFLAG_LOCKABLE_BACKBUFFER | D3DPRESENTFLAG_VIDEO);
+			pPresentationParameters->SwapEffect = D3DSWAPEFFECT_FLIPEX;
+			pPresentationParameters->BackBufferCount = max(2, pPresentationParameters->BackBufferCount);
+
+			// FlipEx requires 32-bit color format
+			if (pPresentationParameters->BackBufferFormat == D3DFMT_R5G6B5 ||
+				pPresentationParameters->BackBufferFormat == D3DFMT_X1R5G5B5 ||
+				pPresentationParameters->BackBufferFormat == D3DFMT_A1R5G5B5)
+			{
+				pPresentationParameters->BackBufferFormat = D3DFMT_X8R8G8B8;
+			}
 		}
 		else
 		{
@@ -820,9 +848,10 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 	}
 	else if (IsEx && Config.D3d9to9Ex)
 	{
-		if (pPresentationParameters->SwapEffect == D3DSWAPEFFECT_FLIP)
+		if (pPresentationParameters->SwapEffect == D3DSWAPEFFECT_FLIP || (pPresentationParameters->Windowed && Config.FlipEx))
 		{
 			pPresentationParameters->SwapEffect = D3DSWAPEFFECT_FLIPEX;
+			pPresentationParameters->BackBufferCount = max(2, pPresentationParameters->BackBufferCount);
 		}
 	}
 
@@ -1008,9 +1037,9 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd, bool IsDirectDrawDevice, bool 
 		ShowWindow(hWnd, SW_RESTORE);
 	}
 
-	// Only change z-order if currently topmost or not in foreground
+	// Only change z-order if currently topmost (except in exclusive fullscreen) or not in foreground
 	bool isWindowTopMost = (lExStyle & WS_EX_TOPMOST);
-	bool needsZOrderChange = isWindowTopMost ||
+	bool needsZOrderChange = (isWindowTopMost && !IsExclusive) ||
 		((IsExclusive || Config.EnableWindowMode) && hWnd != GetForegroundWindow());
 
 	// Only call if something actually changed
@@ -1022,7 +1051,7 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd, bool IsDirectDrawDevice, bool 
 
 		SetWindowPos(
 			hWnd,
-			(isWindowTopMost ? HWND_NOTOPMOST : HWND_TOP),
+			(isWindowTopMost ? (IsExclusive ? HWND_TOPMOST : HWND_NOTOPMOST) : HWND_TOP),
 			0,
 			0,
 			0,

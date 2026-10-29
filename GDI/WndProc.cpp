@@ -17,9 +17,13 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <algorithm>
+#include <unordered_map>
+#include "Libraries\ScopeGuard.h"
 #include "WndProc.h"
 #include "GDI.h"
+#ifndef D3D9_ONLY
 #include "ddraw\ddraw.h"
+#endif
 #include "d3d9\d3d9External.h"
 #include "Utils\Utils.h"
 #include "Settings\Settings.h"
@@ -98,16 +102,28 @@ bool WndProc::IsExecutableAddress(void* address)
 
 WNDPROC WndProc::GetWndProc(HWND hWnd)
 {
+#ifdef _WIN64
+	return reinterpret_cast<WNDPROC>(IsWindowUnicode(hWnd) ?
+		GetWindowLongPtrW(hWnd, GWLP_WNDPROC) :
+		GetWindowLongPtrA(hWnd, GWLP_WNDPROC));
+#else
 	return reinterpret_cast<WNDPROC>(IsWindowUnicode(hWnd) ?
 		GetWindowLongW(hWnd, GWL_WNDPROC) :
 		GetWindowLongA(hWnd, GWL_WNDPROC));
+#endif
 }
 
 LONG WndProc::SetWndProc(HWND hWnd, WNDPROC ProcAddress)
 {
+#ifdef _WIN64
+	return (LONG)(IsWindowUnicode(hWnd) ?
+		SetWindowLongPtrW(hWnd, GWLP_WNDPROC, (LONG_PTR)ProcAddress) :
+		SetWindowLongPtrA(hWnd, GWLP_WNDPROC, (LONG_PTR)ProcAddress));
+#else
 	return (IsWindowUnicode(hWnd) ?
 		SetWindowLongW(hWnd, GWL_WNDPROC, (LONG)ProcAddress) :
 		SetWindowLongA(hWnd, GWL_WNDPROC, (LONG)ProcAddress));
+#endif
 }
 
 LRESULT WndProc::CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
@@ -337,6 +353,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	// Handle other window messages
 	switch (Msg)
 	{
+	#ifndef D3D9_ONLY
 	case WM_APP_CREATE_D3D9_DEVICE:
 		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
 		{
@@ -365,14 +382,18 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Attempting to reset device.");
 
+#ifndef D3D9_ONLY
 				HRESULT hr = m_IDirectDrawX::TriggerDeviceReset(hWnd);
+#endif
 				if (hr == DDERR_SURFACELOST || (FAILED(hr) && !IsForeground(hWnd)))
 				{
 					LOG_LIMIT(3, __FUNCTION__ << " Reset failed because device is still lost!");
 
 					ShowWindow(hWnd, SW_MINIMIZE);
 					ShowWindow(hWnd, SW_RESTORE);
+#ifndef D3D9_ONLY
 					m_IDirectDrawX::TriggerDeviceReset(hWnd);
+#endif
 				}
 			}
 
@@ -385,6 +406,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			return 0;
 		}
 		break;
+#endif
 
 	case WM_ACTIVATEAPP:
 		// Handle window focus loss
@@ -600,7 +622,9 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				// Handle exclusive mode cases where the window is resized to be different than the display size (e.g. Call to Power 2)
 				if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
 				{
+#ifndef D3D9_ONLY
 					m_IDirectDrawX::CheckFixWindowPos(hWnd, WinPos);
+#endif
 				}
 
 				RECT rc = {};
@@ -677,7 +701,9 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Release d3d9 interface
 		if (pDataStruct->IsDirectDraw)
 		{
+#ifndef D3D9_ONLY
 			m_IDirectDrawX::TriggerDeviceRelease(hWnd);
+#endif
 		}
 
 		// Final WndProc call

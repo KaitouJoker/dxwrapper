@@ -16,7 +16,9 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#ifndef D3D9_ONLY
 #include "ddraw\ddrawExternal.h"
+#endif
 #include "GDI.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"

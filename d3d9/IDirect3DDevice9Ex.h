@@ -57,6 +57,11 @@ private:
 	// Begin/End Scene
 	bool IsInScene = false;
 	bool BeginSceneCalled = false;
+	// Low-latency GPU fence pacing
+	IDirect3DQuery9* pEventQuery = nullptr;
+	bool EventQueryIssued = false;
+	void ExecuteSpinWaitPacing();
+	void IssueSpinWaitPacing();
 
 	bool FailedReset = false;
 
@@ -130,7 +135,6 @@ private:
 	void ApplyPreDrawFixes();
 	void ApplyPostDrawFixes();
 	void ApplyPrePresentFixes();
-	void ApplyPostPresentFixes();
 
 	void ApplyClipPlanes();
 
@@ -181,6 +185,10 @@ public:
 		{
 			ProxyInterfaceEx = pDevice;
 		}
+		else if (pDevice)
+		{
+			pDevice->QueryInterface(IID_IDirect3DDevice9Ex, (void**)&ProxyInterfaceEx);
+		}
 
 		D3d9Wrapper::TestAllDeviceRefs(ProxyInterface, dref);
 
@@ -203,6 +211,12 @@ public:
 	~m_IDirect3DDevice9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		if (pEventQuery)
+		{
+			pEventQuery->Release();
+			pEventQuery = nullptr;
+		}
 	}
 
 	/*** IUnknown methods ***/
@@ -347,6 +361,8 @@ public:
 
 	// Information functions
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
+	DWORD GetMaxAnisotropy() const { return MaxAnisotropy; }
+	void ApplyPostPresentFixes();
 	void InitInterface(void*, REFIID, UINT) {}	// Stub only
 	AddressLookupTableD3d9* GetLookupTable() { return &ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() { return &StateBlockTable; }

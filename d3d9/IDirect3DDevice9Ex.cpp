@@ -25,9 +25,10 @@
 	DebugOverlay DOverlay;
 #endif
 
+#include <intrin.h>
 static inline void my_nop(void)
 {
-	__asm { nop }
+	__nop();
 }
 
 // ******************************
@@ -465,27 +466,88 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS* pPresentationParamete
 		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
 		D3DDISPLAYMODEEX* pFullscreenDisplayMode = nullptr;
 
-		if (pPresentationParameters)
+		if (pPresentationParameters && !pPresentationParameters->Windowed)
 		{
-			pFullscreenDisplayMode = &FullscreenDisplayMode;
 			m_IDirect3D9Ex::GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
+			if (FullscreenDisplayMode.Format == D3DFMT_UNKNOWN)
+			{
+				FullscreenDisplayMode.Format = D3DFMT_X8R8G8B8;
+				pFullscreenDisplayMode = &FullscreenDisplayMode;
+			}
+			pFullscreenDisplayMode = &FullscreenDisplayMode;
 		}
 
 		LOG_LIMIT(3, __FUNCTION__ << " Warning: Calling Reset() when using D3d9to9Ex.  Managed interfaces converted to the default pool will be lost!");
 
-		return ResetEx(pPresentationParameters, pFullscreenDisplayMode);
+		HRESULT hr = ResetEx(pPresentationParameters, pFullscreenDisplayMode);
+		if (SUCCEEDED(hr))
+		{
+			return hr;
+		}
+
+		Logging::Log() << __FUNCTION__ << " Warning: ResetEx failed (" << (D3DERR)hr << "), falling back to Reset!";
 	}
 
 	return ResetT<fReset>(nullptr, pPresentationParameters, nullptr);
+}
+
+void m_IDirect3DDevice9Ex::ExecuteSpinWaitPacing()
+{
+	if (Config.SpinWaitPacing && ProxyInterface)
+	{
+		if (!pEventQuery)
+		{
+			ProxyInterface->CreateQuery(D3DQUERYTYPE_EVENT, &pEventQuery);
+		}
+
+		if (pEventQuery && EventQueryIssued)
+		{
+			static const LARGE_INTEGER freq = []() {
+				LARGE_INTEGER f = {};
+				QueryPerformanceFrequency(&f);
+				return f;
+			}();
+			// Max spin timeout: 200 microseconds (0.2ms)
+			LONGLONG maxSpinTicks = (freq.QuadPart * 200) / 1000000;
+			LARGE_INTEGER startQpc = {}, curQpc = {};
+			QueryPerformanceCounter(&startQpc);
+
+			while (pEventQuery->GetData(nullptr, 0, 0) == S_FALSE)
+			{
+				YieldProcessor();
+				QueryPerformanceCounter(&curQpc);
+				if (curQpc.QuadPart - startQpc.QuadPart >= maxSpinTicks)
+				{
+					break;
+				}
+			}
+		}
+	}
+}
+
+void m_IDirect3DDevice9Ex::IssueSpinWaitPacing()
+{
+	if (Config.SpinWaitPacing && pEventQuery)
+	{
+		pEventQuery->Issue(D3DISSUE_END);
+		EventQueryIssued = true;
+	}
 }
 
 HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	Utils::OptimizeRenderThread();
+
 	if (IsForcingD3d9to9Ex())
 	{
-		if (SUCCEEDED(PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, 0)))
+		CONST RECT* pSrc = Config.FlipEx ? nullptr : pSourceRect;
+		CONST RECT* pDst = Config.FlipEx ? nullptr : pDestRect;
+		HWND hOverride = Config.FlipEx ? nullptr : hDestWindowOverride;
+		CONST RGNDATA* pDirty = Config.FlipEx ? nullptr : pDirtyRegion;
+
+		if (SUCCEEDED(PresentEx(pSrc, pDst, hOverride, pDirty, 0)))
 		{
 			return D3D_OK;
 		}
@@ -496,7 +558,11 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDest
 		ApplyPrePresentFixes();
 	}
 
+	ExecuteSpinWaitPacing();
+
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+
+	IssueSpinWaitPacing();
 
 	if (SUCCEEDED(hr))
 	{
@@ -2224,9 +2290,23 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	Utils::OptimizeRenderThread();
+
+	if (Config.FlipEx)
+	{
+		pSourceRect = nullptr;
+		pDestRect = nullptr;
+		hDestWindowOverride = nullptr;
+		pDirtyRegion = nullptr;
+	}
+
 	ApplyPrePresentFixes();
 
+	ExecuteSpinWaitPacing();
+
 	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+
+	IssueSpinWaitPacing();
 
 	if (SUCCEEDED(hr))
 	{
@@ -2701,8 +2781,134 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 	BeginSceneCalled = false;
 }
 
+namespace
+{
+	static bool IsKartRiderProcess()
+	{
+		char path[MAX_PATH] = {};
+		if (GetModuleFileNameA(nullptr, path, MAX_PATH))
+		{
+			if (strstr(path, "KartRider.exe") || strstr(path, "KartRider_dump.exe"))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	static bool IsWritableDword(void* ptr)
+	{
+		MEMORY_BASIC_INFORMATION mbi = {};
+		if (VirtualQuery(ptr, &mbi, sizeof(mbi)) == sizeof(mbi))
+		{
+			if (mbi.State == MEM_COMMIT &&
+				(mbi.Protect == PAGE_READWRITE || mbi.Protect == PAGE_EXECUTE_READWRITE || mbi.Protect == PAGE_WRITECOPY || mbi.Protect == PAGE_EXECUTE_WRITECOPY))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	static bool TestWriteDword(volatile DWORD* ptr, DWORD testVal)
+	{
+		__try
+		{
+			*ptr = testVal;
+			return true;
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			return false;
+		}
+	}
+
+	static void ResetKartFrameGate()
+	{
+		static volatile DWORD* s_pLastFrameTick = nullptr;
+		static bool s_Verified = false;
+		static int s_RetryCount = 0;
+		if (!s_Verified && s_RetryCount < 100)
+		{
+			s_RetryCount++;
+			HMODULE hMain = GetModuleHandleA(nullptr);
+			if (hMain)
+			{
+				PIMAGE_DOS_HEADER dos = reinterpret_cast<PIMAGE_DOS_HEADER>(hMain);
+				PIMAGE_NT_HEADERS nt = reinterpret_cast<PIMAGE_NT_HEADERS>(reinterpret_cast<uint8_t*>(hMain) + dos->e_lfanew);
+				uint8_t* codeBase = reinterpret_cast<uint8_t*>(hMain) + nt->OptionalHeader.BaseOfCode;
+				size_t codeSize = nt->OptionalHeader.SizeOfCode;
+
+				// 1) Dynamic scan for x64 KartRider frame gate:
+				// Pattern: 8B 3D [disp32] FF 15 [disp32] 89 C6 E8 [disp32] 39 F7 0F 84
+				// mov edi, [rip + disp32] (last frame tick)
+				// call qword ptr [...]     (current tick -> eax)
+				// mov esi, eax
+				// call ...
+				// cmp edi, esi
+				// je ... (frame skip)
+				for (size_t i = 0; i + 23 <= codeSize; ++i)
+				{
+					if (codeBase[i] == 0x8B && codeBase[i + 1] == 0x3D &&
+						codeBase[i + 6] == 0xFF && codeBase[i + 7] == 0x15 &&
+						codeBase[i + 12] == 0x89 && codeBase[i + 13] == 0xC6 &&
+						codeBase[i + 14] == 0xE8 &&
+						codeBase[i + 19] == 0x39 && codeBase[i + 20] == 0xF7 &&
+						codeBase[i + 21] == 0x0F && codeBase[i + 22] == 0x84)
+					{
+						int32_t disp = *reinterpret_cast<int32_t*>(&codeBase[i + 2]);
+						uintptr_t targetPtr = reinterpret_cast<uintptr_t>(&codeBase[i + 6]) + disp;
+						if (IsWritableDword(reinterpret_cast<void*>(targetPtr)))
+						{
+							s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(targetPtr);
+							break;
+						}
+					}
+				}
+
+				// 2) Fallback to known fixed RVA (0x98179bc) if confirmed KartRider process
+				if (!s_pLastFrameTick && IsKartRiderProcess())
+				{
+					uintptr_t fixedAddr = reinterpret_cast<uintptr_t>(hMain) + 0x98179bc;
+					if (IsWritableDword(reinterpret_cast<void*>(fixedAddr)))
+					{
+						s_pLastFrameTick = reinterpret_cast<volatile DWORD*>(fixedAddr);
+					}
+				}
+			}
+
+			if (s_pLastFrameTick)
+			{
+				if (TestWriteDword(s_pLastFrameTick, 0xFFFFFFFF))
+				{
+					s_Verified = true;
+					Logging::Log() << __FUNCTION__ << " Successfully verified and bound KartRider x64 1ms frame gate at " << (void*)s_pLastFrameTick;
+				}
+				else
+				{
+					s_pLastFrameTick = nullptr;
+					s_RetryCount = 100;
+				}
+			}
+			else
+			{
+				s_RetryCount = 100;
+			}
+		}
+
+		if (s_Verified)
+		{
+			*s_pLastFrameTick = 0xFFFFFFFF;
+		}
+	}
+}
+
 void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
 {
+	if (Config.UnlockFrameRate)
+	{
+		ResetKartFrameGate();
+	}
 	if (UsingShadowBackBuffer())
 	{
 		if (DeviceDetails.BackBufferCount == 1)
@@ -3268,6 +3474,12 @@ DWORD m_IDirect3DDevice9Ex::GetResourceRefCount()
 
 void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 {
+	if (pEventQuery)
+	{
+		pEventQuery->Release();
+		pEventQuery = nullptr;
+		EventQueryIssued = false;
+	}
 	if (GammaLUTTexture)
 	{
 		ULONG ref = GammaLUTTexture->Release();
@@ -3509,6 +3721,26 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 	if (Config.D3d9to9Ex && !IsForcingD3d9to9Ex())
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " Warning: Creating non-Ex interface when using D3d9to9Ex!");
+	}
+
+	// Optimize latency: clamp maximum queued frame latency and boost GPU scheduling priority
+	if (ProxyInterfaceEx)
+	{
+		DWORD maxLatency = (Config.MaxFrameLatency > 0) ? Config.MaxFrameLatency : 1;
+		HRESULT hrLat = ProxyInterfaceEx->SetMaximumFrameLatency(maxLatency);
+		if (SUCCEEDED(hrLat))
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Successfully set SetMaximumFrameLatency(" << maxLatency << ")");
+		}
+		HRESULT hrPrio = ProxyInterfaceEx->SetGPUThreadPriority(7);
+		if (SUCCEEDED(hrPrio))
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Successfully set SetGPUThreadPriority(7)");
+		}
+	}
+	else if (Config.MaxFrameLatency)
+	{
+		LOG_LIMIT(1, __FUNCTION__ << " Note: Direct3D 9 standard mode does not expose SetMaximumFrameLatency API; frame queuing is governed by graphics driver settings.");
 	}
 
 	Utils::GetScreenSize(DeviceDetails.hMonitor, DeviceDetails.screenWidth, DeviceDetails.screenHeight);

@@ -22,6 +22,10 @@ typedef void(WINAPI* DxWrapperLoggingProc)(const char* LogMessage);
 // Shared procs
 #include "shared.h"
 
+#ifdef D3D9_ONLY
+#define VISIT_DLLS_BASIC(visit) \
+	visit(d3d9)
+#else
 #define VISIT_DLLS_BASIC(visit) \
 	visit(d3d8) \
 	visit(d3d9) \
@@ -29,6 +33,7 @@ typedef void(WINAPI* DxWrapperLoggingProc)(const char* LogMessage);
 	visit(dinput) \
 	visit(dinput8) \
 	visit(dsound)
+#endif
 
 #define VISIT_DLLS_STUB(visit) \
 	visit(bcrypt) \
@@ -57,12 +62,16 @@ typedef void(WINAPI* DxWrapperLoggingProc)(const char* LogMessage);
 #endif
 
 // Wrappers
+#ifndef D3D9_ONLY
 #include "d3d8.h"
+#endif
 #include "d3d9.h"
+#ifndef D3D9_ONLY
 #include "ddraw.h"
 #include "dinput.h"
 #include "dinput8.h"
 #include "dsound.h"
+#endif
 #ifdef STUB
 #include "bcrypt.h"
 #include "cryptbase.h"
@@ -102,6 +111,7 @@ typedef void(WINAPI* DxWrapperLoggingProc)(const char* LogMessage);
 	volatile extern FARPROC procName ## _funct; \
 	volatile extern FARPROC procName ## _var;
 
+#ifndef D3D9_ONLY
 namespace ddraw
 {
 	VISIT_PROCS_DDRAW(DECLARE_PROC_VARIABLES);
@@ -125,17 +135,20 @@ namespace d3d8
 	VISIT_PROCS_D3D8(DECLARE_PROC_VARIABLES);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
+#endif
 namespace d3d9
 {
 	VISIT_PROCS_D3D9(DECLARE_PROC_VARIABLES);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
+#ifndef D3D9_ONLY
 namespace dsound
 {
 	VISIT_PROCS_DSOUND(DECLARE_PROC_VARIABLES);
 	VISIT_SHARED_DSOUND_PROCS(DECLARE_PROC_VARIABLES_SHARED);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
+#endif
 namespace ShardProcs
 {
 	VISIT_PROCS_SHAREDPROCS(DECLARE_PROC_VARIABLES);

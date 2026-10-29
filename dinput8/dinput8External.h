@@ -15,6 +15,7 @@ HRESULT WINAPI di8_DllRegisterServer();
 HRESULT WINAPI di8_DllUnregisterServer();
 LPCDIDATAFORMAT WINAPI di8_GetdfDIJoystick();
 
+#ifndef D3D9_ONLY
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*di8_ ## procName;
 
@@ -28,3 +29,5 @@ namespace Dinput8Wrapper
 }
 
 #undef DECLARE_IN_WRAPPED_PROC
+
+#endif // D3D9_ONLY

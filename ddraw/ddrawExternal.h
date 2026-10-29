@@ -35,6 +35,7 @@ class m_IDirectDrawClipper;
 void InitDDraw();
 void ExitDDraw();
 
+#ifndef D3D9_ONLY
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*dd_ ## procName;
 
@@ -48,3 +49,5 @@ namespace DdrawWrapper
 }
 
 #undef DECLARE_IN_WRAPPED_PROC
+
+#endif // D3D9_ONLY

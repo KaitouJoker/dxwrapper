@@ -348,8 +348,11 @@ struct __HeapBuffer
 
 template <typename T, std::size_t Alignment>
 struct aligned_allocator {
+#ifndef _WIN64
     static_assert(Alignment >= alignof(void*), "Alignment must be at least pointer size");
+#endif
     static_assert((Alignment& (Alignment - 1)) == 0, "Alignment must be a power of two");
+    static constexpr std::size_t EffectiveAlignment = (Alignment < alignof(void*)) ? alignof(void*) : Alignment;
 
     using value_type = T;
 
@@ -361,7 +364,7 @@ struct aligned_allocator {
     T* allocate(std::size_t n) {
         void* ptr = nullptr;
 #if defined(_MSC_VER)
-        ptr = _aligned_malloc(n * sizeof(T), Alignment);
+        ptr = _aligned_malloc(n * sizeof(T), EffectiveAlignment);
         if (!ptr) throw std::bad_alloc();
 #else
         if (posix_memalign(&ptr, Alignment, n * sizeof(T)) != 0)

@@ -623,7 +623,7 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		// Check if the window is not a child window
 		if (data.Windows[data.LayerNumber].IsMain)
 		{
-			if (GetWindowLong(hwnd, GWL_HWNDPARENT) != 0)
+			if (GetWindowLongPtr(hwnd, GWLP_HWNDPARENT) != 0)
 			{
 				data.Windows[data.LayerNumber].IsMain = false;
 			}
