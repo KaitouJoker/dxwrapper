@@ -745,28 +745,8 @@ void Utils::OptimizeRenderThread()
 
 	if (Config.BoostRenderThread)
 	{
-		// Elevate thread priority to TIME_CRITICAL (level 15)
+		// Safe high priority (level 10) instead of TIME_CRITICAL/MMCSS to avoid 1000ms throttle and thread starvation
 		SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
-		// Prevent Windows scheduler from decaying thread priority
-		SetThreadPriorityBoost(hThread, FALSE);
-
-		// MMCSS registration: AvSetMmThreadCharacteristicsA
-		HMODULE hAvrt = LoadLibraryA("Avrt.dll");
-		if (hAvrt)
-		{
-			typedef HANDLE(WINAPI* pfnAvSetMmThreadCharacteristicsA)(LPCSTR TaskName, LPDWORD TaskIndex);
-			pfnAvSetMmThreadCharacteristicsA pAvSetMmThreadCharacteristicsA =
-				(pfnAvSetMmThreadCharacteristicsA)GetProcAddress(hAvrt, "AvSetMmThreadCharacteristicsA");
-			if (pAvSetMmThreadCharacteristicsA)
-			{
-				DWORD taskIndex = 0;
-				HANDLE hMmcss = pAvSetMmThreadCharacteristicsA("Games", &taskIndex);
-				if (hMmcss)
-				{
-					Logging::Log() << __FUNCTION__ << " Successfully registered render thread with MMCSS 'Games'";
-				}
-			}
-		}
 	}
 
 	if (Config.RenderThreadAffinity != 0)
