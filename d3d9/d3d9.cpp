@@ -263,6 +263,7 @@ static void WINAPI Direct3D9DisableMaximizedWindowedMode()
 		}
 		*(BYTE*)((BYTE*)addr + 1) = 0;
 		VirtualProtect((LPVOID)((BYTE*)addr + 1), 1, Protect, &Protect);
+		FlushInstructionCache(GetCurrentProcess(), (LPVOID)((BYTE*)addr + 1), 1);
 #else
 		if (memcmp(addr, "\x8B\xFF\x55\x8B\xEC\x6A\x01\xFF\x75\x08\xE8", 11) != S_OK)
 		{

@@ -24,6 +24,7 @@
 #include "External/detours/src/detours.h"
 #endif
 
+#ifndef _WIN64
 namespace Hook
 {
 	constexpr DWORD buff_size = 21;
@@ -233,6 +234,7 @@ inline void* Hook::RewriteHeader(BYTE* patch_address, const char* apiname, void*
 #endif
 	return new_mem;
 }
+#endif // !_WIN64
 
 void* Hook::HotPatch(void* apiproc, const char* apiname, void* hookproc)
 {
