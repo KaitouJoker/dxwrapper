@@ -185,10 +185,13 @@ void Settings::SetValue(char* name, char* value, void** setting)
 	*setting = nullptr;
 
 	// Get address pointer
-	if (strtoul(value, nullptr, 16) > 0 &&						// Verify pointer has a value higher than 0
-		value[0] == '0' && (char)tolower(value[1]) == 'x')		// Check for leading "0x" to indicate hex number
+	if (value && value[0] == '0' && (char)tolower(value[1]) == 'x')		// Check for leading "0x" to indicate hex number
 	{
-		*setting = (void*)strtoul(value, nullptr, 16);
+		uintptr_t addr = (uintptr_t)_strtoui64(value, nullptr, 16);
+		if (addr > 0)
+		{
+			*setting = (void*)addr;
+		}
 	}
 #ifdef _DEBUG
 	Logging::Log() << name << " set to '" << *setting << "'";
