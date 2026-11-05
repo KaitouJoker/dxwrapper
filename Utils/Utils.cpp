@@ -805,6 +805,25 @@ namespace PacingTelemetryInternal
 	static LARGE_INTEGER s_LastPresentEnd = {};
 	static ULONG64 s_LastCycles = 0;
 
+	static double GetCpuCyclesPerMs()
+	{
+		static double s_CyclesPerMs = 0.0;
+		if (s_CyclesPerMs == 0.0)
+		{
+			DWORD mhz = 0;
+			DWORD size = sizeof(mhz);
+			if (RegGetValueA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", "~MHz", RRF_RT_REG_DWORD, nullptr, &mhz, &size) == ERROR_SUCCESS && mhz > 500)
+			{
+				s_CyclesPerMs = static_cast<double>(mhz) * 1000.0;
+			}
+			else
+			{
+				s_CyclesPerMs = 4500000.0; // Fallback default 4.5 GHz
+			}
+		}
+		return s_CyclesPerMs;
+	}
+
 	static DWORD WINAPI TelemetryWorker(LPVOID)
 	{
 		char logPath[MAX_PATH];
@@ -886,7 +905,7 @@ void Utils::PacingTelemetryBegin()
 			if (outsideMs > 0.0 && PacingTelemetryInternal::s_LastCycles != 0)
 			{
 				ULONG64 cycleDelta = curCycles - PacingTelemetryInternal::s_LastCycles;
-				onCpuRatio = (static_cast<double>(cycleDelta) / (outsideMs * 4500000.0));
+				onCpuRatio = (static_cast<double>(cycleDelta) / (outsideMs * PacingTelemetryInternal::GetCpuCyclesPerMs()));
 			}
 
 			const char* reason = "OutsideCPU";
