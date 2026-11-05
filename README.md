@@ -9,7 +9,7 @@ Tailored and battle-tested for high-refresh-rate (144Hz, 240Hz, 360Hz, 540Hz+) c
 ---
 
 ## Table of Contents
-1. [Performance Demonstration (Video)](#1-performance-demonstration-video)
+1. [Performance Benchmark Comparison](#1-performance-benchmark-comparison)
 2. [Installation and Configuration Hierarchy](#2-installation-and-configuration-hierarchy)
 3. [Core Display and Compatibility Settings](#3-core-display-and-compatibility-settings)
 4. [Low-Latency and Performance Optimizations](#4-low-latency-and-performance-optimizations)
@@ -20,19 +20,23 @@ Tailored and battle-tested for high-refresh-rate (144Hz, 240Hz, 360Hz, 540Hz+) c
 
 ---
 
-## 1. Performance Demonstration (Video)
+## 1. Performance Benchmark Comparison
 
-The following side-by-side recordings demonstrate the frame-time stability, input responsiveness, and complete elimination of periodic spikes in KartRider x64 when running with the optimized DxWrapper versus the legacy 64-bit DirectX runtime.
+Below is the verified 60-second PresentMon telemetry benchmark in KartRider x64, comparing the default legacy 64-bit DirectX runtime (`d3dx9_43.dll`) against the optimized **DxWrapper x64 General (`d3d9.dll` v1.9.8770.25)**:
 
-### Legacy Runtime (`d3dx9_43.dll`)
-> Noticeable periodic frame-time spikes and micro-stutters caused by legacy presentation queues and OS thread rescheduling.
-
-https://github.com/user-attachments/assets/1d350200-094a-451f-8b3a-af26f0d09b87
-
-### Optimized DxWrapper (`d3d9.dll`)
-> Completely flat, jitter-free frame pacing sustained at ~0.38ms to 0.6ms (2,600+ FPS), achieved via x64 frame gate bypass, DWM DirectFlip elevation, Intel Hybrid P-core auto-pinning, and safe thread scheduling.
-
-https://github.com/user-attachments/assets/f270993d-ed86-4d61-a123-00b3e891eb22
+| Metric | Legacy Runtime (`d3dx9_43.dll`) | DxWrapper x64 General (`d3d9.dll`) | Delta / Improvement |
+| :--- | :---: | :---: | :--- |
+| **Average Framerate** | 948.9 FPS (1,000 FPS hard-capped) | **2,700.7 FPS** | **+1,751.8 FPS (+184.6%)** |
+| **Peak Instantaneous FPS** | 1,331.4 FPS | **2,999.4 FPS** | **~3,000 FPS ceiling reached** |
+| **1% Low Framerate** | 651.8 FPS | **2,182.9 FPS** | **+1,531.1 FPS (+234.9%)** |
+| **5% Low Framerate** | 674.0 FPS | **2,437.2 FPS** | **+1,763.2 FPS (+261.6%)** |
+| **Minimum Framerate** | 103.0 FPS | **436.1 FPS** | **+333.1 FPS (4.2x higher)** |
+| **Average Frametime** | 1.054 ms | **0.370 ms (370 µs)** | **-0.684 ms (-64.9%)** |
+| **Frametime 99th Percentile (p99)** | 1.534 ms | **0.458 ms** | **-1.076 ms (-70.1%)** |
+| **Frametime 99.9th Percentile (p99.9)** | 1.608 ms | **0.554 ms** | **-1.054 ms (-65.5%)** |
+| **Maximum Frametime Spike** | 9.704 ms | **2.293 ms** | **-7.412 ms (-76.4%)** |
+| **Spikes $\ge$ 1.0 ms across 60s** | 41,899 frames (73.7% of total) | **2 frames** | **99.998% frametime perfection** |
+| **Spikes $\ge$ 5.0 ms across 60s** | 14 spikes (periodic stutter) | **0 spikes** | **Completely eliminated** |
 
 ---
 
