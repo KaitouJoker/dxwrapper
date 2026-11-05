@@ -733,10 +733,15 @@ void Utils::OptimizeRenderThread()
 
 	if (Config.RenderThreadIdealCore != 0)
 	{
+		DWORD cpuCount = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
 		BYTE idealProc = 2; // Default safe Core 1 (CPU 2)
 		if (Config.RenderThreadIdealCore > 1)
 		{
 			idealProc = static_cast<BYTE>(Config.RenderThreadIdealCore);
+		}
+		if (cpuCount > 0 && idealProc >= cpuCount)
+		{
+			idealProc = static_cast<BYTE>(cpuCount - 1);
 		}
 		PROCESSOR_NUMBER procNum = {};
 		procNum.Group = 0;
