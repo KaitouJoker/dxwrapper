@@ -543,7 +543,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.MaxFrameLatency = 1;
 	Config.SpinWaitPacing = 0;
 	Config.RenderThreadAffinity = 0;
-	Config.RenderThreadIdealCore = 0;
+	Config.RenderThreadIdealCore = 1;
 	Config.GpuSchedulingPriority = 0;
 	Config.TimerResolution100ns = 5000;
 	Config.PacingTelemetry = 0;

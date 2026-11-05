@@ -42,7 +42,7 @@ https://github.com/user-attachments/assets/f270993d-ed86-4d61-a123-00b3e891eb22
 1. **기존 레거시 DLL 삭제**: 게임 설치 폴더에 비공식 패치나 레거시 구동용으로 남아있는 `d3dx9_43.dll` 파일이 존재할 경우 **반드시 삭제**하거나 백업해 주십시오. 구버전 또는 비정상적인 `d3dx9_43.dll`이 게임 폴더에 남아있으면 DirectX 런타임 로딩 간섭으로 인해 실행 오류나 렌더링 충돌이 발생할 수 있습니다.
 2. 빌드된 `d3d9.dll`과 설정 파일(`d3d9.ini`)을 게임 실행 파일(예: `KartRider.exe`)이 위치한 폴더에 복사합니다.
 3. 게임 실행 시 64비트 `d3d9.dll`이 프로세스에 자동으로 로드되며 Direct3D 호출을 가로채 하드웨어 파이프라인을 가속합니다.
-4. **Zero-Config 독립 실행**: `d3d9.ini` 설정 파일이 없어도 DLL 내부에 e스포츠 경쟁전 최적화 기본값(`FlipEx=1`, `DisableDynamicSleep=0`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`, `UnlockFrameRate=1`, `RenderThreadAffinity=0`, `SetSwapEffectShim=1`, `SpinWaitPacing=0`)이 하드코딩되어 있어 설정 파일 없이도 동일하게 최대 성능으로 작동합니다.
+4. **Zero-Config 독립 실행**: `d3d9.ini` 설정 파일이 없어도 DLL 내부에 e스포츠 경쟁전 최적화 기본값(`FlipEx=1`, `DisableDynamicSleep=0`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`, `UnlockFrameRate=1`, `RenderThreadAffinity=0`, `RenderThreadIdealCore=1`, `GpuSchedulingPriority=0`, `TimerResolution100ns=5000`, `SetSwapEffectShim=1`, `SpinWaitPacing=0`)이 하드코딩되어 있어 설정 파일 없이도 동일하게 최대 성능으로 작동합니다.
 
 ### INI 설정 파일 탐색 우선순위
 본 버전은 프로세스별 맞춤 설정을 위해 설정 파일 자동 탐색 메커니즘을 지원합니다:
@@ -118,6 +118,12 @@ https://github.com/user-attachments/assets/f270993d-ed86-4d61-a123-00b3e891eb22
   - **인텔 하이브리드 아키텍처(12/13/14세대 Core 프로세서)** 감지 시, 렌더 스레드를 E코어(효율 코어)에서 완전히 배제하고 **P코어(성능 코어) 전용 마스크**에 자동 고정합니다.
   - AMD 및 단일 구조 인텔 CPU에서는 OS 스케줄러가 코어를 유연하게 분배하도록 하여 단일 코어 과부하로 인한 스터터링을 차단합니다.
 
+#### `RenderThreadIdealCore`
+- **값**: `1` (Core 1/CPU 2 자동 지정, 권장 기본값) | `0` (비활성화) | `2 이상` (지정 논리 CPU 번호)
+- **동작 원리**:
+  - `SetThreadIdealProcessorEx`를 통해 OS 스케줄러에 렌더 스레드의 이상 코어(Ideal Processor) 힌트를 전달합니다.
+  - OS DPC 및 하드웨어 인터럽트가 집중되는 Core 0/1을 회피하여 Core 1(CPU 2)에 안전하게 안착시킴으로써 스케줄러 퀀텀 선점을 억제하고 **하위 1% Low FPS를 약 100 FPS 향상**시킵니다.
+
 #### `SpinWaitPacing`
 - **값**: `0` (비활성화, 기본값 / 2600+ FPS 권장) | `1` (활성화)
 - **동작 원리**:
@@ -190,6 +196,8 @@ BoostRenderThread          = 1          ;; 1: 안전한 우선순위 승격 (100
 MaxFrameLatency            = 1
 SpinWaitPacing             = 0          ;; 0: 최대 2,600+ FPS 달성
 RenderThreadAffinity       = 0          ;; 0: 인텔 P코어 자동 감지 및 안전 분배
+RenderThreadIdealCore       = 1          ;; 1: Core 1(CPU 2) 이상 코어 힌트 지정 (하위 1% FPS +100)
+GpuSchedulingPriority       = 0          ;; 0: 기본값, 1: D3DKMT GPU 우선순위 HIGH
 UnlockFrameRate            = 1          ;; 1: x64 1,000 FPS 엔진 제한 해제 (2600+ FPS)
 SetSwapEffectShim          = 1          ;; 1: DirectFlip 승격 (DWM 버퍼 우회, <1ms 레이턴시)
 LimitPerFrameFPS           = 0

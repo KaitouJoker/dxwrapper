@@ -417,7 +417,7 @@ struct CONFIG
 	DWORD MaxFrameLatency = 1;					// Maximum frame latency for D3D9Ex (1 = lowest latency, 2 = stutter-free balance)
 	bool SpinWaitPacing = false;					// Use micro spin-wait on GPU fence instead of kernel sleep
 	DWORD RenderThreadAffinity = 0;				// Affinity mask for the render thread (4 = Core 1 default)
-	DWORD RenderThreadIdealCore = 0;			// Ideal processor core hint (0 = disabled, 1 = Core 1/CPU 2, >=2 = explicit CPU)
+	DWORD RenderThreadIdealCore = 1;			// Ideal processor core hint (0 = disabled, 1 = Core 1/CPU 2, >=2 = explicit CPU)
 	DWORD GpuSchedulingPriority = 0;			// D3DKMT GPU scheduling priority (0 = normal, 1 = high)
 	DWORD TimerResolution100ns = 5000;			// Timer resolution in 100ns units (5000 = 0.5ms baseline, 10000 = 1.0ms, 0 = default)
 	bool PacingTelemetry = false;				// Log frame pacing diagnostics to d3d9_pacing.log
