@@ -548,7 +548,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.TimerResolution100ns = 5000;
 	Config.PacingTelemetry = 0;
 	Config.UnlockFrameRate = 1;
-	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = 0;
+	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = 1;
 	Config.DdrawHookSystem32 = NOT_EXIST;
 	Config.D3d8HookSystem32 = NOT_EXIST;
 	Config.DinputHookSystem32 = NOT_EXIST;

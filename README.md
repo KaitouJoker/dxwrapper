@@ -42,7 +42,7 @@ https://github.com/user-attachments/assets/f270993d-ed86-4d61-a123-00b3e891eb22
 1. **Remove Legacy DLL**: If `d3dx9_43.dll` exists in your game directory (from legacy wrappers or unofficial patches), **delete it** or back it up. Retaining an outdated or mismatched `d3dx9_43.dll` in the game folder can interfere with DirectX runtime loading and cause crashes or rendering issues.
 2. Copy the compiled 64-bit `d3d9.dll` and configuration file (`d3d9.ini`) into the directory containing your game executable (e.g., `KartRider.exe`).
 3. When the game launches, 64-bit `d3d9.dll` is automatically loaded into the process, intercepting Direct3D calls and accelerating the rendering pipeline.
-4. **Zero-Config Standalone Execution**: Even if `d3d9.ini` is omitted, the DLL internally initializes with hardcoded competitive esports defaults (`FlipEx=1`, `DisableDynamicSleep=0`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`, `UnlockFrameRate=1`, `RenderThreadAffinity=0`, `RenderThreadIdealCore=1`, `GpuSchedulingPriority=0`, `TimerResolution100ns=5000`, `SetSwapEffectShim=1`, `SpinWaitPacing=0`), operating at full performance out-of-the-box.
+4. **Zero-Config Standalone Execution**: Even if `d3d9.ini` is omitted, the DLL internally initializes with hardcoded competitive esports defaults (`FlipEx=1`, `DisableDynamicSleep=0`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`, `UnlockFrameRate=1`, `DisableMaxWindowedMode=1`, `RenderThreadAffinity=0`, `RenderThreadIdealCore=1`, `GpuSchedulingPriority=0`, `TimerResolution100ns=5000`, `SetSwapEffectShim=1`, `SpinWaitPacing=0`), operating at full performance out-of-the-box.
 
 ### Configuration Search Order
 For per-game flexibility, the wrapper searches for configuration files in the following order:
@@ -77,10 +77,10 @@ These settings dictate the rendering pipeline architecture and swapchain present
 - **Description**: Invokes Windows 10/11 DWM `Direct3D9SetSwapEffectUpgradeShim(1)` to elevate `D3DSWAPEFFECT_DISCARD` swapchains to **DirectFlip / Independent Flip** even in windowed modes. Completely bypasses DWM's 3-frame composition queue, reducing display latency from >5ms down to **under 1ms** and restoring hardware presentation telemetry (e.g., PresentMon, Reflex overlays).
 
 #### `DisableMaxWindowedMode`
-- **Values**: `0` (Independent Flip, Default) | `1` (Legacy Flip)
+- **Values**: `1` (Legacy Flip, Default) | `0` (Independent Flip)
 - **Description**: Controls Windows 10/11 **Fullscreen Optimizations (FSO)**.
+  - **`1` (Recommended for Pure Lowest Latency / Time-Attack, Default)**: Disables FSO, forcing the GPU into pure hardware scanout mode (`Hardware: Legacy Flip`) for maximum 2,700+ FPS and sub-0.25ms display latency.
   - **`0` (Recommended for Streaming, Recording, and In-Game Overlays)**: Leaves FSO active to enter the DWM DirectFlip queue (`Hardware: Independent Flip`). In-game overlays (CapFrameX, PresentMon, Discord) display normally, and Alt-Tab switching is instantaneous without display flickering.
-  - **`1` (Recommended for Pure Lowest Latency / Time-Attack)**: Disables FSO, forcing the GPU into pure hardware scanout mode (`Hardware: Legacy Flip`).
 
 #### `EnableWindowMode` / `FullscreenWindowMode` / `WindowModeBorder`
 - **Values**: All set to `0` (Recommended)
@@ -166,15 +166,15 @@ All primary optimizations (x64 1,000 FPS frame gate unlock, Intel Hybrid P-core 
 
 ### Profile Comparison Matrix
 
-| Feature | Default Profile (General / Streaming / Overlays) | Time-Attack Ultra-Low Latency Profile |
+| Feature | Default Profile (Time-Attack Ultra-Low Latency) | Windowed / Overlay Profile |
 | :--- | :---: | :---: |
-| **Key Setting** | **`DisableMaxWindowedMode = 0`** | **`DisableMaxWindowedMode = 1`** |
-| **Presentation Mode** | `Hardware: Independent Flip` | `Hardware: Legacy Flip` |
-| **Average Framerate** | **2,400 ~ 2,660+ FPS** | **2,500 ~ 2,700+ FPS** |
-| **Display Latency (Raw)** | **0.55 ~ 0.70 ms** | **0.50 ~ 0.65 ms** |
-| **In-Game Overlay Support** | Supported (PresentMon, CapFrameX overlay on screen) | Not supported (secondary monitor required) |
-| **Alt-Tab Switching** | Instantaneous (no screen flicker) | Fullscreen mode transition flicker |
-| **Target Audience** | Competitive esports, streamers, overlay users | Time-attack record setting, tournament setups |
+| **Key Setting** | **`DisableMaxWindowedMode = 1`** | **`DisableMaxWindowedMode = 0`** |
+| **Presentation Mode** | `Hardware: Legacy Flip` | `Hardware: Independent Flip` |
+| **Average Framerate** | **2,500 ~ 2,700+ FPS** | **2,400 ~ 2,660+ FPS** |
+| **Display Latency (Raw)** | **0.21 ~ 0.25 ms** | **0.55 ~ 0.70 ms** |
+| **In-Game Overlay Support** | Secondary monitor recommended | Supported (PresentMon, CapFrameX overlay on screen) |
+| **Alt-Tab Switching** | Fullscreen mode transition flicker | Instantaneous (no screen flicker) |
+| **Target Audience** | Competitive esports, time-attack record setting | Streaming, single-monitor recording, overlay users |
 
 ---
 
@@ -205,10 +205,10 @@ DisableLogging             = 1
 
 ;; ======================================================================
 ;; [Core Presentation Switch]
+;;   DisableMaxWindowedMode = 1  -> Legacy Flip (Pure hardware scan-out, ultra-low latency, Default)
 ;;   DisableMaxWindowedMode = 0  -> Independent Flip (Overlays supported, instant Alt-Tab)
-;;   DisableMaxWindowedMode = 1  -> Legacy Flip (Pure hardware scan-out, ultra-low latency)
 ;; ======================================================================
-DisableMaxWindowedMode     = 0
+DisableMaxWindowedMode     = 1
 ```
 
 ---

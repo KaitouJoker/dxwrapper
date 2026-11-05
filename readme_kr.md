@@ -42,7 +42,7 @@ https://github.com/user-attachments/assets/f270993d-ed86-4d61-a123-00b3e891eb22
 1. **기존 레거시 DLL 삭제**: 게임 설치 폴더에 비공식 패치나 레거시 구동용으로 남아있는 `d3dx9_43.dll` 파일이 존재할 경우 **반드시 삭제**하거나 백업해 주십시오. 구버전 또는 비정상적인 `d3dx9_43.dll`이 게임 폴더에 남아있으면 DirectX 런타임 로딩 간섭으로 인해 실행 오류나 렌더링 충돌이 발생할 수 있습니다.
 2. 빌드된 `d3d9.dll`과 설정 파일(`d3d9.ini`)을 게임 실행 파일(예: `KartRider.exe`)이 위치한 폴더에 복사합니다.
 3. 게임 실행 시 64비트 `d3d9.dll`이 프로세스에 자동으로 로드되며 Direct3D 호출을 가로채 하드웨어 파이프라인을 가속합니다.
-4. **Zero-Config 독립 실행**: `d3d9.ini` 설정 파일이 없어도 DLL 내부에 e스포츠 경쟁전 최적화 기본값(`FlipEx=1`, `DisableDynamicSleep=0`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`, `UnlockFrameRate=1`, `RenderThreadAffinity=0`, `RenderThreadIdealCore=1`, `GpuSchedulingPriority=0`, `TimerResolution100ns=5000`, `SetSwapEffectShim=1`, `SpinWaitPacing=0`)이 하드코딩되어 있어 설정 파일 없이도 동일하게 최대 성능으로 작동합니다.
+4. **Zero-Config 독립 실행**: `d3d9.ini` 설정 파일이 없어도 DLL 내부에 e스포츠 경쟁전 최적화 기본값(`FlipEx=1`, `DisableDynamicSleep=0`, `BoostRenderThread=1`, `MaxFrameLatency=1`, `DisablePowerThrottling=1`, `DisableLogging=1`, `D3d9to9Ex=0`, `UnlockFrameRate=1`, `DisableMaxWindowedMode=1`, `RenderThreadAffinity=0`, `RenderThreadIdealCore=1`, `GpuSchedulingPriority=0`, `TimerResolution100ns=5000`, `SetSwapEffectShim=1`, `SpinWaitPacing=0`)이 하드코딩되어 있어 설정 파일 없이도 동일하게 최대 성능으로 작동합니다.
 
 ### INI 설정 파일 탐색 우선순위
 본 버전은 프로세스별 맞춤 설정을 위해 설정 파일 자동 탐색 메커니즘을 지원합니다:
@@ -77,10 +77,10 @@ https://github.com/user-attachments/assets/f270993d-ed86-4d61-a123-00b3e891eb22
 - **동작 원리**: Windows 10/11 DWM의 `Direct3D9SetSwapEffectUpgradeShim(1)` API를 호출하여 `D3DSWAPEFFECT_DISCARD` 스왑체인을 창모드에서도 **DirectFlip / Independent Flip**으로 승격합니다. DWM의 3프레임 컴포지션 버퍼링을 원천 우회하여 인풋 지연 시간을 5ms 이상에서 **1ms 미만**으로 대폭 단축하며, 하드웨어 텔레메트리(PresentMon, Reflex 오버레이)를 복원합니다.
 
 #### `DisableMaxWindowedMode`
-- **값**: `0` (Independent Flip, 기본값) | `1` (Legacy Flip)
+- **값**: `1` (Legacy Flip, 기본값) | `0` (Independent Flip)
 - **동작 원리**: Windows 10/11의 **전체 화면 최적화 (Fullscreen Optimizations, FSO)** 활성화 여부를 직접 제어합니다.
+  - **`1` (권장: 극한의 타임어택, 기본값)**: FSO를 차단하고 순수 하드웨어 스캔아웃 모드(`Hardware: Legacy Flip`)로 진입하여 최대 2,700+ FPS 출력 및 0.25ms 미만 극저지연을 달성합니다.
   - **`0` (권장: 방송 / 영상 녹화 / 단일 모니터 오버레이 사용 시)**: FSO를 활성화하여 DWM Direct Flip 큐를 탑니다. CapFrameX, PresentMon, Discord 등 인게임 오버레이가 정상 표시되며 Alt-Tab 전환이 즉시 이루어집니다.
-  - **`1` (권장: 극한의 타임어택)**: FSO를 차단하고 순수 하드웨어 스캔아웃 모드로 진입합니다.
 
 #### `EnableWindowMode` / `FullscreenWindowMode` / `WindowModeBorder`
 - **값**: 모두 `0` (권장)
@@ -166,15 +166,15 @@ https://github.com/user-attachments/assets/f270993d-ed86-4d61-a123-00b3e891eb22
 
 ### 프리셋 비교 요약
 
-| 항목 | 기본 프로필 (범용 경쟁전 / 방송 / 오버레이) | 타임어택 극저지연 프로필 |
+| 항목 | 기본 프로필 (타임어택 극저지연 프로필) | 창모드 / 방송 / 오버레이 프로필 |
 | :--- | :---: | :---: |
-| **핵심 설정** | **`DisableMaxWindowedMode = 0`** | **`DisableMaxWindowedMode = 1`** |
-| **프레젠테이션 모드** | `Hardware: Independent Flip` | `Hardware: Legacy Flip` |
-| **평균 프레임레이트** | **2,400 ~ 2,660+ FPS** | **2,500 ~ 2,700+ FPS** |
-| **디스플레이 지연 시간** | **0.55 ~ 0.70 ms** | **0.50 ~ 0.65 ms** |
-| **인게임 오버레이 표시** | 지원 (PresentMon, CapFrameX 화면 위 출력) | 비지원 (보조 모니터 출력 필요) |
-| **Alt-Tab 전환** | 즉각 전환 (화면 깜빡임 없음) | 전체화면 모드 전환 깜빡임 발생 |
-| **권장 대상** | 일반/경쟁전 유저, 스트리머, 오버레이 사용자 | 대회/타임어택 0.01초 랩타임 기록 단축용 |
+| **핵심 설정** | **`DisableMaxWindowedMode = 1`** | **`DisableMaxWindowedMode = 0`** |
+| **프레젠테이션 모드** | `Hardware: Legacy Flip` | `Hardware: Independent Flip` |
+| **평균 프레임레이트** | **2,500 ~ 2,700+ FPS** | **2,400 ~ 2,660+ FPS** |
+| **디스플레이 지연 시간** | **0.21 ~ 0.25 ms** | **0.55 ~ 0.70 ms** |
+| **인게임 오버레이 표시** | 보조 모니터 출력 권장 | 지원 (PresentMon, CapFrameX 화면 위 출력) |
+| **Alt-Tab 전환** | 전체화면 모드 전환 깜빡임 발생 | 즉각 전환 (화면 깜빡임 없음) |
+| **권장 대상** | 대회/타임어택 0.01초 랩타임 기록 단축용 | 일반/경쟁전 유저, 스트리머, 오버레이 사용자 |
 
 ---
 
@@ -205,10 +205,10 @@ DisableLogging             = 1
 
 ;; ======================================================================
 ;; [프레젠테이션 모드 전환]
+;;   DisableMaxWindowedMode = 1  -> Legacy Flip (순수 하드웨어 스캔아웃, 극저지연, 기본값)
 ;;   DisableMaxWindowedMode = 0  -> Independent Flip (오버레이 지원, 즉각 Alt-Tab)
-;;   DisableMaxWindowedMode = 1  -> Legacy Flip (순수 하드웨어 스캔아웃, 극저지연)
 ;; ======================================================================
-DisableMaxWindowedMode     = 0
+DisableMaxWindowedMode     = 1
 ```
 
 ---
