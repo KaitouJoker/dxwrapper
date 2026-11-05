@@ -879,9 +879,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Fullscreen::StartThread();
 		}
 
-		// Start thread priority monitor thread
-		//Utils::StartPriorityMonitor();
-
 		// Load custom dlls
 		if (Config.LoadCustomDllPath.size() != 0)
 		{
@@ -976,7 +973,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Fullscreen::StopThread();
 		WriteMemory::StopThread();
 		Utils::StopPacingTelemetry();
-		//Utils::StopPriorityMonitor();
 
 #ifndef D3D9_ONLY
 		// Unload DdrawWrapper
