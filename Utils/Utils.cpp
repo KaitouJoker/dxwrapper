@@ -796,6 +796,7 @@ namespace PacingTelemetryInternal
 	static std::atomic<size_t> s_SpikeWriteIdx{ 0 };
 	static size_t s_SpikeReadIdx = 0;
 	static HANDLE s_WorkerThread = nullptr;
+	static HANDLE s_WakeEvent = nullptr;
 	static std::atomic<bool> s_Running{ false };
 
 	static LARGE_INTEGER s_Frequency = {};
@@ -821,7 +822,15 @@ namespace PacingTelemetryInternal
 
 		while (s_Running)
 		{
-			Sleep(5000);
+			if (s_WakeEvent)
+			{
+				WaitForSingleObject(s_WakeEvent, 5000);
+			}
+			else
+			{
+				Sleep(5000);
+			}
+			if (!s_Running) break;
 			size_t writeIdx = s_SpikeWriteIdx.load(std::memory_order_acquire);
 			if (s_SpikeReadIdx != writeIdx)
 			{
@@ -849,6 +858,7 @@ void Utils::PacingTelemetryBegin()
 	if (PacingTelemetryInternal::s_Frequency.QuadPart == 0)
 	{
 		QueryPerformanceFrequency(&PacingTelemetryInternal::s_Frequency);
+		PacingTelemetryInternal::s_WakeEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 		PacingTelemetryInternal::s_Running = true;
 		PacingTelemetryInternal::s_WorkerThread = CreateThread(nullptr, 0, PacingTelemetryInternal::TelemetryWorker, nullptr, 0, nullptr);
 		if (PacingTelemetryInternal::s_WorkerThread)
@@ -909,6 +919,29 @@ void Utils::PacingTelemetryEnd()
 
 	QueryPerformanceCounter(&PacingTelemetryInternal::s_LastPresentEnd);
 	QueryThreadCycleTime(GetCurrentThread(), &PacingTelemetryInternal::s_LastCycles);
+}
+
+void Utils::StopPacingTelemetry()
+{
+	if (PacingTelemetryInternal::s_Running)
+	{
+		PacingTelemetryInternal::s_Running = false;
+		if (PacingTelemetryInternal::s_WakeEvent)
+		{
+			SetEvent(PacingTelemetryInternal::s_WakeEvent);
+		}
+		if (PacingTelemetryInternal::s_WorkerThread)
+		{
+			WaitForSingleObject(PacingTelemetryInternal::s_WorkerThread, 1000);
+			CloseHandle(PacingTelemetryInternal::s_WorkerThread);
+			PacingTelemetryInternal::s_WorkerThread = nullptr;
+		}
+		if (PacingTelemetryInternal::s_WakeEvent)
+		{
+			CloseHandle(PacingTelemetryInternal::s_WakeEvent);
+			PacingTelemetryInternal::s_WakeEvent = nullptr;
+		}
+	}
 }
 
 

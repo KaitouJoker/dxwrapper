@@ -63,6 +63,7 @@ namespace Utils
 	void OptimizeRenderThread();
 	void PacingTelemetryBegin();
 	void PacingTelemetryEnd();
+	void StopPacingTelemetry();
 	HANDLE WINAPI kernel_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 	LPVOID WINAPI kernel_HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes);

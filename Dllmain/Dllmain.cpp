@@ -975,6 +975,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Stop threads
 		Fullscreen::StopThread();
 		WriteMemory::StopThread();
+		Utils::StopPacingTelemetry();
 		//Utils::StopPriorityMonitor();
 
 #ifndef D3D9_ONLY
