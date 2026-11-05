@@ -544,6 +544,8 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDest
 
 	Utils::OptimizeRenderThread();
 
+	Utils::PacingTelemetryBegin();
+
 	if (IsForcingD3d9to9Ex())
 	{
 		CONST RECT* pSrc = Config.FlipEx ? nullptr : pSourceRect;
@@ -565,6 +567,8 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDest
 	ExecuteSpinWaitPacing();
 
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+
+	Utils::PacingTelemetryEnd();
 
 	IssueSpinWaitPacing();
 
@@ -2296,6 +2300,8 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 
 	Utils::OptimizeRenderThread();
 
+	Utils::PacingTelemetryBegin();
+
 	if (Config.FlipEx)
 	{
 		pSourceRect = nullptr;
@@ -2309,6 +2315,8 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 	ExecuteSpinWaitPacing();
 
 	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+
+	Utils::PacingTelemetryEnd();
 
 	IssueSpinWaitPacing();
 

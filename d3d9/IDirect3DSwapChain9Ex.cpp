@@ -78,6 +78,8 @@ HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RE
 
 	Utils::OptimizeRenderThread();
 
+	Utils::PacingTelemetryBegin();
+
 	if (Config.FlipEx)
 	{
 		pSourceRect = nullptr;
@@ -92,6 +94,8 @@ HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RE
 	}
 
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+
+	Utils::PacingTelemetryEnd();
 
 	if (m_pDeviceEx)
 	{

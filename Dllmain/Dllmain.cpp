@@ -95,17 +95,19 @@ __declspec(dllexport) void WINAPI DxWrapperLogging(const char* LogMessage)
 typedef LONG(NTAPI* pfnNtSetTimerResolution)(ULONG DesiredResolution, BOOLEAN SetResolution, PULONG CurrentResolution);
 static void SetHighResolutionTimer()
 {
-	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-	if (ntdll)
+	if (Config.TimerResolution100ns != 0)
 	{
-		pfnNtSetTimerResolution NtSetTimerResolution = (pfnNtSetTimerResolution)GetProcAddress(ntdll, "NtSetTimerResolution");
-		if (NtSetTimerResolution)
+		HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+		if (ntdll)
 		{
-			ULONG curRes = 0;
-			// 5000 x 100ns = 0.500ms
-			if (NtSetTimerResolution(5000, TRUE, &curRes) >= 0)
+			pfnNtSetTimerResolution NtSetTimerResolution = (pfnNtSetTimerResolution)GetProcAddress(ntdll, "NtSetTimerResolution");
+			if (NtSetTimerResolution)
 			{
-				Logging::Log() << "Successfully set NT timer resolution to 0.5ms (current: " << curRes << " x 100ns)";
+				ULONG curRes = 0;
+				if (NtSetTimerResolution(Config.TimerResolution100ns, TRUE, &curRes) >= 0)
+				{
+					Logging::Log() << "Successfully set NT timer resolution to " << Config.TimerResolution100ns << " x 100ns (current: " << curRes << " x 100ns)";
+				}
 			}
 		}
 	}
@@ -135,7 +137,40 @@ static void OptimizeProcessPriority()
 	if (Config.BoostRenderThread)
 	{
 		SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+		// Note: Do not boost loader thread to HIGHEST (15) here.
+		// Render thread is boosted in Utils::OptimizeRenderThread().
+	}
+
+	if (Config.GpuSchedulingPriority)
+	{
+		HMODULE hGdi32 = GetModuleHandleA("gdi32.dll");
+		if (hGdi32)
+		{
+			typedef enum _D3DKMT_SCHEDULINGPRIORITYCLASS {
+				D3DKMT_SCHEDULINGPRIORITYCLASS_IDLE = 0,
+				D3DKMT_SCHEDULINGPRIORITYCLASS_BELOW_NORMAL = 1,
+				D3DKMT_SCHEDULINGPRIORITYCLASS_NORMAL = 2,
+				D3DKMT_SCHEDULINGPRIORITYCLASS_ABOVE_NORMAL = 3,
+				D3DKMT_SCHEDULINGPRIORITYCLASS_HIGH = 4,
+				D3DKMT_SCHEDULINGPRIORITYCLASS_REALTIME = 5
+			} D3DKMT_SCHEDULINGPRIORITYCLASS;
+			typedef LONG(APIENTRY* PFN_D3DKMTSetProcessSchedulingPriorityClass)(HANDLE, D3DKMT_SCHEDULINGPRIORITYCLASS);
+
+			PFN_D3DKMTSetProcessSchedulingPriorityClass pfnD3DKMTSetProcessSchedulingPriorityClass =
+				(PFN_D3DKMTSetProcessSchedulingPriorityClass)GetProcAddress(hGdi32, "D3DKMTSetProcessSchedulingPriorityClass");
+			if (pfnD3DKMTSetProcessSchedulingPriorityClass)
+			{
+				LONG status = pfnD3DKMTSetProcessSchedulingPriorityClass(GetCurrentProcess(), D3DKMT_SCHEDULINGPRIORITYCLASS_HIGH);
+				if (status >= 0)
+				{
+					Logging::Log() << "Successfully set GPU scheduling priority to HIGH";
+				}
+				else
+				{
+					Logging::Log() << "Failed to set GPU scheduling priority: " << status;
+				}
+			}
+		}
 	}
 
 	// Lock system and display into continuous active mode (disable screen dimming, idle CPU downclocking)

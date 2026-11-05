@@ -1,4 +1,6 @@
 #include <vector>
+#include <atomic>
+#include <fstream>
 /**
 * Copyright (C) 2026 Elisha Riedlinger
 *
@@ -725,8 +727,36 @@ void Utils::OptimizeRenderThread()
 
 	if (Config.BoostRenderThread)
 	{
-		// Safe high priority (level 10) instead of TIME_CRITICAL/MMCSS to avoid 1000ms throttle and thread starvation
+		// Safe high priority (level 14 in HIGH_PRIORITY_CLASS) instead of TIME_CRITICAL/MMCSS to avoid 1000ms throttle
 		SetThreadPriority(hThread, THREAD_PRIORITY_ABOVE_NORMAL);
+	}
+
+	if (Config.RenderThreadIdealCore != 0)
+	{
+		BYTE idealProc = 2; // Default safe Core 1 (CPU 2)
+		if (Config.RenderThreadIdealCore > 1)
+		{
+			idealProc = static_cast<BYTE>(Config.RenderThreadIdealCore);
+		}
+		PROCESSOR_NUMBER procNum = {};
+		procNum.Group = 0;
+		procNum.Number = idealProc;
+
+		typedef BOOL(WINAPI* pfnSetThreadIdealProcessorEx)(HANDLE, PPROCESSOR_NUMBER, PPROCESSOR_NUMBER);
+		HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+		if (hKernel32)
+		{
+			pfnSetThreadIdealProcessorEx pSetThreadIdealProcessorEx =
+				(pfnSetThreadIdealProcessorEx)GetProcAddress(hKernel32, "SetThreadIdealProcessorEx");
+			if (pSetThreadIdealProcessorEx)
+			{
+				PROCESSOR_NUMBER prevProc = {};
+				if (pSetThreadIdealProcessorEx(hThread, &procNum, &prevProc))
+				{
+					Logging::Log() << __FUNCTION__ << " Set render thread ideal processor: Group " << procNum.Group << ", Core " << (int)procNum.Number;
+				}
+			}
+		}
 	}
 
 	if (Config.RenderThreadAffinity != 0)
@@ -743,6 +773,137 @@ void Utils::OptimizeRenderThread()
 			Logging::Log() << __FUNCTION__ << " Intel Hybrid detected: pinned render thread to P-cores mask: 0x" << std::hex << pCoreMask;
 		}
 	}
+}
+
+namespace PacingTelemetryInternal
+{
+	struct SpikeRecord {
+		double timestampSec;
+		double intervalMs;
+		double inPresentMs;
+		double outsideMs;
+		double onCpuRatio;
+		const char* reason;
+	};
+
+	static const size_t RING_SIZE = 256;
+	static SpikeRecord s_Spikes[RING_SIZE];
+	static std::atomic<size_t> s_SpikeWriteIdx{ 0 };
+	static size_t s_SpikeReadIdx = 0;
+	static HANDLE s_WorkerThread = nullptr;
+	static std::atomic<bool> s_Running{ false };
+
+	static LARGE_INTEGER s_Frequency = {};
+	static LARGE_INTEGER s_LastPresentBegin = {};
+	static LARGE_INTEGER s_PresentBegin = {};
+	static LARGE_INTEGER s_LastPresentEnd = {};
+	static ULONG64 s_LastCycles = 0;
+
+	static DWORD WINAPI TelemetryWorker(LPVOID)
+	{
+		char logPath[MAX_PATH];
+		if (!GetModuleFileNameA(nullptr, logPath, MAX_PATH)) return 0;
+		char* lastSlash = strrchr(logPath, '\\');
+		if (lastSlash) *(lastSlash + 1) = '\0';
+		strcat_s(logPath, "d3d9_pacing.log");
+
+		FILE* f = nullptr;
+		if (fopen_s(&f, logPath, "a") == 0 && f)
+		{
+			fprintf(f, "=== Frame Pacing Telemetry Started ===\nProcess Priority: 0x%lx\n", GetPriorityClass(GetCurrentProcess()));
+			fclose(f);
+		}
+
+		while (s_Running)
+		{
+			Sleep(5000);
+			size_t writeIdx = s_SpikeWriteIdx.load(std::memory_order_acquire);
+			if (s_SpikeReadIdx != writeIdx)
+			{
+				if (fopen_s(&f, logPath, "a") == 0 && f)
+				{
+					while (s_SpikeReadIdx != writeIdx)
+					{
+						const auto& spike = s_Spikes[s_SpikeReadIdx % RING_SIZE];
+						fprintf(f, "[%.3fs] Interval=%.2fms, inPresent=%.2fms, outside=%.2fms, onCpuRatio=%.2f, Reason=%s\n",
+							spike.timestampSec, spike.intervalMs, spike.inPresentMs, spike.outsideMs, spike.onCpuRatio, spike.reason);
+						s_SpikeReadIdx++;
+					}
+					fclose(f);
+				}
+			}
+		}
+		return 0;
+	}
+}
+
+void Utils::PacingTelemetryBegin()
+{
+	if (!Config.PacingTelemetry) return;
+
+	if (PacingTelemetryInternal::s_Frequency.QuadPart == 0)
+	{
+		QueryPerformanceFrequency(&PacingTelemetryInternal::s_Frequency);
+		PacingTelemetryInternal::s_Running = true;
+		PacingTelemetryInternal::s_WorkerThread = CreateThread(nullptr, 0, PacingTelemetryInternal::TelemetryWorker, nullptr, 0, nullptr);
+		if (PacingTelemetryInternal::s_WorkerThread)
+		{
+			SetThreadPriority(PacingTelemetryInternal::s_WorkerThread, THREAD_PRIORITY_LOWEST);
+		}
+	}
+
+	QueryPerformanceCounter(&PacingTelemetryInternal::s_PresentBegin);
+	if (PacingTelemetryInternal::s_LastPresentBegin.QuadPart != 0)
+	{
+		double freq = static_cast<double>(PacingTelemetryInternal::s_Frequency.QuadPart);
+		double intervalMs = (PacingTelemetryInternal::s_PresentBegin.QuadPart - PacingTelemetryInternal::s_LastPresentBegin.QuadPart) * 1000.0 / freq;
+
+		if (intervalMs > 1.0)
+		{
+			double outsideMs = 0.0;
+			if (PacingTelemetryInternal::s_LastPresentEnd.QuadPart != 0)
+			{
+				outsideMs = (PacingTelemetryInternal::s_PresentBegin.QuadPart - PacingTelemetryInternal::s_LastPresentEnd.QuadPart) * 1000.0 / freq;
+			}
+			ULONG64 curCycles = 0;
+			QueryThreadCycleTime(GetCurrentThread(), &curCycles);
+			double onCpuRatio = 0.0;
+			if (outsideMs > 0.0 && PacingTelemetryInternal::s_LastCycles != 0)
+			{
+				ULONG64 cycleDelta = curCycles - PacingTelemetryInternal::s_LastCycles;
+				onCpuRatio = (static_cast<double>(cycleDelta) / (outsideMs * 4500000.0));
+			}
+
+			const char* reason = "OutsideCPU";
+			if (outsideMs < 0.2)
+			{
+				reason = "InPresentStall";
+			}
+			else if (onCpuRatio < 0.5)
+			{
+				reason = "OutsidePreempted";
+			}
+
+			size_t idx = PacingTelemetryInternal::s_SpikeWriteIdx.load(std::memory_order_relaxed);
+			auto& rec = PacingTelemetryInternal::s_Spikes[idx % PacingTelemetryInternal::RING_SIZE];
+			rec.timestampSec = PacingTelemetryInternal::s_PresentBegin.QuadPart / freq;
+			rec.intervalMs = intervalMs;
+			rec.inPresentMs = intervalMs - outsideMs;
+			rec.outsideMs = outsideMs;
+			rec.onCpuRatio = onCpuRatio;
+			rec.reason = reason;
+			PacingTelemetryInternal::s_SpikeWriteIdx.store(idx + 1, std::memory_order_release);
+		}
+	}
+	PacingTelemetryInternal::s_LastPresentBegin = PacingTelemetryInternal::s_PresentBegin;
+}
+
+void Utils::PacingTelemetryEnd()
+{
+	if (!Config.PacingTelemetry) return;
+
+	QueryPerformanceCounter(&PacingTelemetryInternal::s_LastPresentEnd);
+	QueryThreadCycleTime(GetCurrentThread(), &PacingTelemetryInternal::s_LastCycles);
 }
 
 

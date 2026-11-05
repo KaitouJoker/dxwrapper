@@ -543,6 +543,10 @@ void Settings::SetDefaultConfigSettings()
 	Config.MaxFrameLatency = 1;
 	Config.SpinWaitPacing = 0;
 	Config.RenderThreadAffinity = 0;
+	Config.RenderThreadIdealCore = 0;
+	Config.GpuSchedulingPriority = 0;
+	Config.TimerResolution100ns = 5000;
+	Config.PacingTelemetry = 0;
 	Config.UnlockFrameRate = 1;
 	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = 0;
 	Config.DdrawHookSystem32 = NOT_EXIST;

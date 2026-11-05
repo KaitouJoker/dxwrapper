@@ -61,6 +61,8 @@ namespace Utils
 	DWORD WINAPI kernel_SleepEx(DWORD dwMilliseconds, BOOL bAlertable);
 	DWORD_PTR GetPerformanceCoreAffinityMask();
 	void OptimizeRenderThread();
+	void PacingTelemetryBegin();
+	void PacingTelemetryEnd();
 	HANDLE WINAPI kernel_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 	LPVOID WINAPI kernel_HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes);
