@@ -147,7 +147,7 @@ void Settings::SetValue(char* name, char* value, MEMORYINFO* MemoryInfo)
 {
 	// Declare vars
 	char charTemp[] = { '0', 'x', '0' , '0', '\0' };
-	DWORD len = strlen(value);
+	size_t len = strlen(value);
 
 	// Check for valid bytes
 	if ((len > 3) &&											// String has at least one byte
@@ -155,11 +155,11 @@ void Settings::SetValue(char* name, char* value, MEMORYINFO* MemoryInfo)
 		value[0] == '0' && (char)tolower(value[1]) == 'x')		// Check for leading "0x" to indicate hex number
 	{
 		// Get bytes size
-		DWORD size = (len / 2) - 1;
+		size_t size = (len / 2) - 1;
 		MemoryInfo->Bytes.resize(size, '\0');
 
 		// Get byte data
-		for (DWORD x = 1; x <= size; x++)
+		for (size_t x = 1; x <= size; x++)
 		{
 			charTemp[2] = value[x * 2];
 			charTemp[3] = value[(x * 2) + 1];
