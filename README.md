@@ -32,6 +32,8 @@ Below is the verified 60-second PresentMon telemetry benchmark in KartRider x64,
 | **5% Low Framerate** | 674.0 FPS | **2,437.2 FPS** | **+1,763.2 FPS (+261.6% consistency gain)** |
 | **Minimum Framerate** | 103.0 FPS | **436.1 FPS** | **+333.1 FPS (4.2x baseline increase)** |
 | **Average Frametime** | 1.054 ms | **0.370 ms (370 µs)** | **-0.684 ms (-64.9% latency reduction)** |
+| **Frametime Jitter / Std Dev ($\sigma$)** | 0.177 ms (176.6 µs) | **0.023 ms (22.6 µs)** | **-0.154 ms (-87.2% jitter suppression, 7.8x flatter)** |
+| **Frame-to-Frame Ripple (Mean $\Delta t$)** | 0.105 ms (104.8 µs) | **0.016 ms (16.4 µs)** | **-0.088 ms (-84.4% ripple suppression, 6.4x more stable)** |
 | **Frametime 99th Percentile (p99)** | 1.534 ms | **0.458 ms** | **-1.076 ms (-70.1% latency reduction)** |
 | **Frametime 99.9th Percentile (p99.9)** | 1.608 ms | **0.554 ms** | **-1.054 ms (-65.5% latency reduction)** |
 | **Maximum Frametime Spike** | 9.704 ms (scheduler stall) | **2.293 ms** | **-7.412 ms (-76.4% variance reduction)** |
