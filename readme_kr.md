@@ -22,7 +22,7 @@
 
 ## 1. 성능 비교 벤치마크 (Performance Comparison)
 
-아래 표는 카트라이더 x64 환경에서 기존 레거시 런타임(`d3dx9_43.dll`)과 최적화된 **DxWrapper x64 General (`d3d9.dll` v1.9.8777.25)**의 60초간 PresentMon 하드웨어 텔레메트리 실측 데이터를 비교한 결과입니다:
+아래 표는 카트라이더 x64 환경에서 기존 레거시 런타임(`d3dx9_43.dll`)과 최적화된 **DxWrapper x64 General (`d3d9.dll` v1.9.8777.25)** 의 60초간 PresentMon 하드웨어 텔레메트리 실측 데이터를 비교한 결과입니다:
 
 | 측정 항목 | 기존 레거시 런타임 (`d3dx9_43.dll`) | 최적화 DxWrapper (`d3d9.dll`) | 변화량 및 개선 효과 |
 | :--- | :---: | :---: | :--- |
