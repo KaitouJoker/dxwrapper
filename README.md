@@ -22,7 +22,11 @@ Tailored and battle-tested for high-refresh-rate (144Hz, 240Hz, 360Hz, 540Hz+) c
 
 ## 1. Performance Benchmark Comparison
 
-Below is the verified 60-second PresentMon telemetry benchmark in KartRider x64, comparing the default legacy 64-bit DirectX runtime (`d3dx9_43.dll`) against the optimized **DxWrapper x64 General (`d3d9.dll` v1.9.8777.25)**:
+Below is the verified 60-second PresentMon telemetry benchmark in KartRider x64, comparing the default legacy 64-bit DirectX runtime (`d3dx9_43.dll`) against the optimized **DxWrapper x64 General (`d3d9.dll` v1.9.8777.25)**.
+
+The raw telemetry datasets referenced in this comparison are archived in the [`Captures/`](Captures/) directory:
+- **Legacy Runtime (`d3dx9_43.dll`) Raw Capture**: [`Captures/pmcap-KartRider.exe-261106-075244.csv`](Captures/pmcap-KartRider.exe-261106-075244.csv) ([Summary](Captures/pmcap-KartRider.exe-261106-075244-stats.csv))
+- **DxWrapper x64 General (`d3d9.dll` v1.9.8777.25) Raw Capture**: [`Captures/pmcap-KartRider.exe-261106-085359.csv`](Captures/pmcap-KartRider.exe-261106-085359.csv) ([Summary](Captures/pmcap-KartRider.exe-261106-085359-stats.csv))
 
 | Metric | Legacy Runtime (`d3dx9_43.dll`) | DxWrapper x64 General (`d3d9.dll`) | Delta / Improvement |
 | :--- | :---: | :---: | :--- |
