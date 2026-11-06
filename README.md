@@ -28,21 +28,21 @@ The raw telemetry datasets referenced in this comparison are archived in the [`C
 - **Legacy Runtime (`d3dx9_43.dll`) Raw Capture**: [`Captures/pmcap-KartRider.exe-261106-075244.csv`](Captures/pmcap-KartRider.exe-261106-075244.csv) ([Summary](Captures/pmcap-KartRider.exe-261106-075244-stats.csv))
 - **DxWrapper x64 General (`d3d9.dll` v1.9.8777.25) Raw Capture**: [`Captures/pmcap-KartRider.exe-261106-085359.csv`](Captures/pmcap-KartRider.exe-261106-085359.csv) ([Summary](Captures/pmcap-KartRider.exe-261106-085359-stats.csv))
 
-| Metric | Legacy Runtime (`d3dx9_43.dll`) | DxWrapper x64 General (`d3d9.dll`) | Delta / Improvement |
+| Metric | Legacy Runtime (`d3dx9_43.dll`) | DxWrapper x64 General (`d3d9.dll`) | Delta (Change) |
 | :--- | :---: | :---: | :--- |
-| **Average Framerate** | 948.9 FPS (1,000 FPS hard-capped) | **2,927.0 FPS** | **+1,978.1 FPS (+208.5% throughput gain)** |
-| **Peak Instantaneous FPS** | 1,331.4 FPS | **4,187.6 FPS** | **Max throughput reached (4,187.6 FPS)** |
-| **1% Low Framerate** | 651.8 FPS | **2,395.8 FPS** | **+1,744.0 FPS (+267.6% consistency gain)** |
-| **5% Low Framerate** | 674.0 FPS | **2,690.3 FPS** | **+2,016.4 FPS (+299.2% consistency gain)** |
-| **Minimum Framerate** | 103.0 FPS | **434.7 FPS** | **+331.6 FPS (4.2x baseline increase)** |
-| **Average Frametime** | 1.054 ms | **0.342 ms (342 µs)** | **-0.712 ms (-67.6% latency reduction)** |
-| **Frametime Jitter / Std Dev ($\sigma$)** | 0.177 ms (176.6 µs) | **0.018 ms (18.4 µs)** | **-0.158 ms (-89.6% jitter suppression, 9.6x flatter)** |
-| **Frame-to-Frame Ripple (Mean $\Delta t$)** | 0.105 ms (104.8 µs) | **0.013 ms (13.1 µs)** | **-0.092 ms (-87.5% ripple suppression, 8.0x more stable)** |
-| **Frametime 99th Percentile (p99)** | 1.534 ms | **0.417 ms** | **-1.117 ms (-72.8% latency reduction)** |
-| **Frametime 99.9th Percentile (p99.9)** | 1.608 ms | **0.477 ms** | **-1.132 ms (-70.4% latency reduction)** |
-| **Maximum Frametime Spike** | 9.704 ms (scheduler stall) | **2.300 ms** | **-7.404 ms (-76.3% variance reduction)** |
-| **Spikes $\ge$ 1.0 ms across 60s** | 41,899 frames (73.7% of total) | **2 frames** | **99.999% sub-millisecond pacing consistency** |
-| **Spikes $\ge$ 5.0 ms across 60s** | 14 spikes (periodic stutter) | **0 spikes** | **0 spikes (100% elimination of periodic stalls)** |
+| **Average Framerate** | 948.9 FPS (1,000 FPS hard-capped) | **2,927.0 FPS** | **+1,978.1 FPS (+208.5%)** |
+| **Peak Instantaneous FPS** | 1,331.4 FPS | **4,187.6 FPS** | **+2,856.2 FPS (+214.5%)** |
+| **1% Low Framerate** | 651.8 FPS | **2,395.8 FPS** | **+1,744.0 FPS (+267.6%)** |
+| **5% Low Framerate** | 674.0 FPS | **2,690.3 FPS** | **+2,016.4 FPS (+299.2%)** |
+| **Minimum Framerate** | 103.0 FPS | **434.7 FPS** | **+331.6 FPS (+321.8%)** |
+| **Average Frametime** | 1.054 ms | **0.342 ms (342 µs)** | **-0.712 ms (-67.6%)** |
+| **Frametime Jitter / Std Dev ($\sigma$)** | 0.177 ms (176.6 µs) | **0.018 ms (18.4 µs)** | **-0.158 ms (-89.6%)** |
+| **Frame-to-Frame Ripple (Mean $\Delta t$)** | 0.105 ms (104.8 µs) | **0.013 ms (13.1 µs)** | **-0.092 ms (-87.5%)** |
+| **Frametime 99th Percentile (p99)** | 1.534 ms | **0.417 ms** | **-1.117 ms (-72.8%)** |
+| **Frametime 99.9th Percentile (p99.9)** | 1.608 ms | **0.477 ms** | **-1.132 ms (-70.4%)** |
+| **Maximum Frametime Spike** | 9.704 ms (scheduler stall) | **2.300 ms** | **-7.404 ms (-76.3%)** |
+| **Spikes $\ge$ 1.0 ms across 60s** | 41,899 frames (73.7% of total) | **2 frames** | **-41,897 frames (-100.0%)** |
+| **Spikes $\ge$ 5.0 ms across 60s** | 14 spikes (periodic stutter) | **0 spikes** | **-14 spikes (-100.0%)** |
 
 ---
 
