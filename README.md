@@ -42,7 +42,7 @@ The raw telemetry datasets referenced in this comparison are archived in the [`C
 | **Frametime 99th Percentile (p99)** | 1.534 ms | **0.417 ms** | **-1.117 ms (-72.8%)** |
 | **Frametime 99.9th Percentile (p99.9)** | 1.608 ms | **0.477 ms** | **-1.132 ms (-70.4%)** |
 | **Maximum Frametime Spike** | 9.704 ms (scheduler stall) | **2.300 ms** | **-7.404 ms (-76.3%)** |
-| **Spikes $\ge$ 1.0 ms across 60s** | 41,899 frames (73.7% of total) | **2 frames** | **-41,897 frames (-100.0%)** |
+| **Spikes $\ge$ 1.0 ms across 60s** | 41,899 frames (73.7% of total) | **2 frames** | **-41,897 frames (-99.995%)** |
 | **Spikes $\ge$ 5.0 ms across 60s** | 14 spikes (periodic stutter) | **0 spikes** | **-14 spikes (-100.0%)** |
 
 ---
