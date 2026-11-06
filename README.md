@@ -2,9 +2,9 @@
 
 [English](README.md) | [한국어 (Korean)](readme_kr.md)
 
-A universal (Intel / AMD Universal) high-performance DirectX wrapper and proxy library specifically engineered for running 64-bit (x64 Native) Direct3D 9 games on modern Windows 10 and Windows 11 systems with **ultra-low latency**, **rock-solid frame pacing**, **zero OS scheduling jitter**, and an unlocked **2,600+ FPS rendering pipeline**.
+A universal (Intel / AMD Universal) high-performance DirectX wrapper and proxy library specifically engineered for running 64-bit (x64 Native) Direct3D 9 games on modern Windows 10 and Windows 11 systems with **ultra-low latency**, **rock-solid frame pacing**, **zero OS scheduling jitter**, and an unlocked **2,900+ FPS rendering pipeline**.
 
-Tailored and battle-tested for high-refresh-rate (144Hz, 240Hz, 360Hz, 540Hz+) competitive esports environments (such as **KartRider x64**), this edition completely eliminates the recurring **frame-time spikes and 1,000ms periodic micro-stutters** caused by OS scheduler transitions and timer quantization. Furthermore, it completely bypasses the 64-bit engine's internal **1,000 FPS frame gate ceiling**, allowing modern systems (AMD Ryzen and Intel 12th/13th/14th Gen Core CPUs + NVIDIA GeForce RTX series) to sustain framerates of **2,600+ FPS** (~0.38ms frame times) with ultra-low display latency (**0.55 ~ 0.70ms raw latency**). It also incorporates Windows 10/11 **DirectFlip / Independent Flip** swapchain elevation (`SetSwapEffectShim = 1`) to bypass the Desktop Window Manager (DWM) 3-frame buffering queue.
+Tailored and battle-tested for high-refresh-rate (144Hz, 240Hz, 360Hz, 540Hz+) competitive esports environments (such as **KartRider x64**), this edition completely eliminates the recurring **frame-time spikes and 1,000ms periodic micro-stutters** caused by OS scheduler transitions and timer quantization. Furthermore, it completely bypasses the 64-bit engine's internal **1,000 FPS frame gate ceiling**, allowing modern systems (AMD Ryzen and Intel 12th/13th/14th Gen Core CPUs + NVIDIA GeForce RTX series) to sustain framerates of **2,900+ FPS** (~0.34ms frame times) with ultra-low display latency (**0.13 ~ 0.18ms raw latency**). It also incorporates Windows 10/11 **DirectFlip / Independent Flip** swapchain elevation (`SetSwapEffectShim = 1`) to bypass the Desktop Window Manager (DWM) 3-frame buffering queue.
 
 ---
 
@@ -22,22 +22,22 @@ Tailored and battle-tested for high-refresh-rate (144Hz, 240Hz, 360Hz, 540Hz+) c
 
 ## 1. Performance Benchmark Comparison
 
-Below is the verified 60-second PresentMon telemetry benchmark in KartRider x64, comparing the default legacy 64-bit DirectX runtime (`d3dx9_43.dll`) against the optimized **DxWrapper x64 General (`d3d9.dll` v1.9.8770.25)**:
+Below is the verified 60-second PresentMon telemetry benchmark in KartRider x64, comparing the default legacy 64-bit DirectX runtime (`d3dx9_43.dll`) against the optimized **DxWrapper x64 General (`d3d9.dll` v1.9.8777.25)**:
 
 | Metric | Legacy Runtime (`d3dx9_43.dll`) | DxWrapper x64 General (`d3d9.dll`) | Delta / Improvement |
 | :--- | :---: | :---: | :--- |
-| **Average Framerate** | 948.9 FPS (1,000 FPS hard-capped) | **2,700.7 FPS** | **+1,751.8 FPS (+184.6% throughput gain)** |
-| **Peak Instantaneous FPS** | 1,331.4 FPS | **2,999.4 FPS** | **Max throughput reached (2,999.4 FPS)** |
-| **1% Low Framerate** | 651.8 FPS | **2,182.9 FPS** | **+1,531.1 FPS (+234.9% consistency gain)** |
-| **5% Low Framerate** | 674.0 FPS | **2,437.2 FPS** | **+1,763.2 FPS (+261.6% consistency gain)** |
-| **Minimum Framerate** | 103.0 FPS | **436.1 FPS** | **+333.1 FPS (4.2x baseline increase)** |
-| **Average Frametime** | 1.054 ms | **0.370 ms (370 µs)** | **-0.684 ms (-64.9% latency reduction)** |
-| **Frametime Jitter / Std Dev ($\sigma$)** | 0.177 ms (176.6 µs) | **0.023 ms (22.6 µs)** | **-0.154 ms (-87.2% jitter suppression, 7.8x flatter)** |
-| **Frame-to-Frame Ripple (Mean $\Delta t$)** | 0.105 ms (104.8 µs) | **0.016 ms (16.4 µs)** | **-0.088 ms (-84.4% ripple suppression, 6.4x more stable)** |
-| **Frametime 99th Percentile (p99)** | 1.534 ms | **0.458 ms** | **-1.076 ms (-70.1% latency reduction)** |
-| **Frametime 99.9th Percentile (p99.9)** | 1.608 ms | **0.554 ms** | **-1.054 ms (-65.5% latency reduction)** |
-| **Maximum Frametime Spike** | 9.704 ms (scheduler stall) | **2.293 ms** | **-7.412 ms (-76.4% variance reduction)** |
-| **Spikes $\ge$ 1.0 ms across 60s** | 41,899 frames (73.7% of total) | **2 frames** | **99.998% sub-millisecond pacing consistency** |
+| **Average Framerate** | 948.9 FPS (1,000 FPS hard-capped) | **2,927.0 FPS** | **+1,978.1 FPS (+208.5% throughput gain)** |
+| **Peak Instantaneous FPS** | 1,331.4 FPS | **4,187.6 FPS** | **Max throughput reached (4,187.6 FPS)** |
+| **1% Low Framerate** | 651.8 FPS | **2,395.8 FPS** | **+1,744.0 FPS (+267.6% consistency gain)** |
+| **5% Low Framerate** | 674.0 FPS | **2,690.3 FPS** | **+2,016.4 FPS (+299.2% consistency gain)** |
+| **Minimum Framerate** | 103.0 FPS | **434.7 FPS** | **+331.6 FPS (4.2x baseline increase)** |
+| **Average Frametime** | 1.054 ms | **0.342 ms (342 µs)** | **-0.712 ms (-67.6% latency reduction)** |
+| **Frametime Jitter / Std Dev ($\sigma$)** | 0.177 ms (176.6 µs) | **0.018 ms (18.4 µs)** | **-0.158 ms (-89.6% jitter suppression, 9.6x flatter)** |
+| **Frame-to-Frame Ripple (Mean $\Delta t$)** | 0.105 ms (104.8 µs) | **0.013 ms (13.1 µs)** | **-0.092 ms (-87.5% ripple suppression, 8.0x more stable)** |
+| **Frametime 99th Percentile (p99)** | 1.534 ms | **0.417 ms** | **-1.117 ms (-72.8% latency reduction)** |
+| **Frametime 99.9th Percentile (p99.9)** | 1.608 ms | **0.477 ms** | **-1.132 ms (-70.4% latency reduction)** |
+| **Maximum Frametime Spike** | 9.704 ms (scheduler stall) | **2.300 ms** | **-7.404 ms (-76.3% variance reduction)** |
+| **Spikes $\ge$ 1.0 ms across 60s** | 41,899 frames (73.7% of total) | **2 frames** | **99.999% sub-millisecond pacing consistency** |
 | **Spikes $\ge$ 5.0 ms across 60s** | 14 spikes (periodic stutter) | **0 spikes** | **0 spikes (100% elimination of periodic stalls)** |
 
 ---
