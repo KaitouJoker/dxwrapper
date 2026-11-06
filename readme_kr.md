@@ -27,7 +27,7 @@
 본 벤치마크에 참조된 하드웨어 텔레메트리 실측 원본 데이터는 [`Captures/`](Captures/) 디렉터리에 보관되어 있습니다:
 - **기존 레거시 런타임 (`d3dx9_43.dll`) 실측 원본**: [`Captures/pmcap-KartRider.exe-261106-075244.csv`](Captures/pmcap-KartRider.exe-261106-075244.csv) ([요약 통계](Captures/pmcap-KartRider.exe-261106-075244-stats.csv))
 - **최적화 DxWrapper (`d3d9.dll` v1.9.8777.25) 실측 원본**: [`Captures/pmcap-KartRider.exe-261106-085359.csv`](Captures/pmcap-KartRider.exe-261106-085359.csv) ([요약 통계](Captures/pmcap-KartRider.exe-261106-085359-stats.csv))
-- **데이터 분석 스크립트**: [`python Captures/analyze_telemetry.py`](Captures/analyze_telemetry.py) 실행 시 원본 CSV로부터 본 표의 모든 항목을 독립적으로 재현 및 검증할 수 있습니다.
+- **데이터 측정 및 추출 스크립트**: [`python Captures/analyze_telemetry.py <데이터파일.csv>`](Captures/analyze_telemetry.py) 실행 시 인수로 전달한 단일 PresentMon CSV 파일로부터 모든 성능 지표를 즉시 추출하여 표 형태로 출력합니다.
 
 | 측정 항목 | 기존 레거시 런타임 (`d3dx9_43.dll`) | 최적화 DxWrapper (`d3d9.dll`) | 변화량 (변화율) |
 | :--- | :---: | :---: | :--- |

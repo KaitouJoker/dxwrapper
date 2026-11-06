@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-DxWrapper x64 General - PresentMon Telemetry Benchmark Analyzer
-Extracts and computes rendering throughput, frametime pacing, jitter,
-inter-frame ripple, display latency, and hardware queue timings from
-raw PresentMon capture CSV datasets.
+DxWrapper x64 General - PresentMon Telemetry Metrics Extractor
+Reads a single PresentMon CSV capture file and outputs an exact,
+rigorous table of measured rendering throughput, frametime pacing,
+jitter, ripple, display latency, and hardware queue timings.
 """
 
 import os
@@ -36,7 +36,7 @@ def percentile(sorted_data, p):
 def load_telemetry(csv_path):
     """Loads and computes key telemetry metrics from PresentMon CSV."""
     if not os.path.exists(csv_path):
-        raise FileNotFoundError(f"Telemetry file not found: {csv_path}")
+        raise FileNotFoundError(f"File not found: {csv_path}")
 
     target_cols = [
         'TimeInSeconds', 'MsBetweenPresents', 'MsUntilDisplayed',
@@ -75,7 +75,7 @@ def load_telemetry(csv_path):
 
     ft = raw['MsBetweenPresents']
     if not ft:
-        raise ValueError(f"No valid frametime data found in {csv_path}")
+        raise ValueError(f"No valid MsBetweenPresents data found in {csv_path}")
 
     total_frames = len(ft)
     times = raw['TimeInSeconds']
@@ -88,7 +88,7 @@ def load_telemetry(csv_path):
     fps_list = [1000.0 / x for x in ft if x > 0]
     s_fps = sorted(fps_list)
 
-    # Frametime Jitter (Standard Deviation)
+    # Frametime Jitter (Standard Deviation σ)
     variance = sum((x - ft_mean) ** 2 for x in ft) / total_frames
     std_ft = math.sqrt(variance)
 
@@ -107,6 +107,7 @@ def load_telemetry(csv_path):
     return {
         'path': csv_path,
         'filename': os.path.basename(csv_path),
+        'filesize_mb': os.path.getsize(csv_path) / (1024 * 1024),
         'total_frames': total_frames,
         'duration': duration,
         'avg_fps': avg_fps,
@@ -136,105 +137,67 @@ def load_telemetry(csv_path):
     }
 
 
-def format_delta(v1, v2, unit='', lower_better=True, precision=1):
-    diff = v2 - v1
-    pct = (diff / v1 * 100.0) if v1 != 0 else 0.0
-    sign = '+' if diff > 0 else ''
-    if precision == 1:
-        diff_str = f"{sign}{diff:.1f}"
-    elif precision == 3:
-        diff_str = f"{sign}{diff:.3f}"
-    else:
-        diff_str = f"{sign}{diff}"
-    return f"**{diff_str} {unit} ({sign}{pct:.1f}%)**" if unit else f"**{diff_str} ({sign}{pct:.1f}%)**"
+def print_single_telemetry(d):
+    """Outputs a markdown table of all measured metrics for a single capture."""
+    print("=" * 80)
+    print(f"PresentMon Telemetry Analysis: {d['filename']}")
+    print(f"Path: {d['path']}")
+    print(f"Size: {d['filesize_mb']:.2f} MB | Frames: {d['total_frames']:,} | Duration: {d['duration']:.2f}s")
+    print("=" * 80 + "\n")
 
-
-def print_comparison_table(b, o, title="PresentMon Telemetry Benchmark Comparison"):
-    """Prints GitHub Flavored Markdown comparison table matching repository docs."""
-    print(f"\n### {title}\n")
-    print(f"- **Baseline Data**: `{b['filename']}` ({b['total_frames']:,} frames, {b['duration']:.2f}s)")
-    print(f"- **Optimized Data**: `{o['filename']}` ({o['total_frames']:,} frames, {o['duration']:.2f}s)\n")
-    print("| Metric | Baseline | Optimized | Delta (Change) |")
-    print("| :--- | :---: | :---: | :--- |")
+    print("| 측정 항목 (Metric) | 실측값 (Measured Value) |")
+    print("| :--- | :---: |")
 
     rows = [
-        ("Average Framerate", f"{b['avg_fps']:.1f} FPS", f"**{o['avg_fps']:.1f} FPS**",
-         format_delta(b['avg_fps'], o['avg_fps'], 'FPS', lower_better=False, precision=1)),
-        ("Peak Instantaneous FPS", f"{b['peak_fps']:.1f} FPS", f"**{o['peak_fps']:.1f} FPS**",
-         format_delta(b['peak_fps'], o['peak_fps'], 'FPS', lower_better=False, precision=1)),
-        ("1% Low Framerate", f"{b['low_1pct_fps']:.1f} FPS", f"**{o['low_1pct_fps']:.1f} FPS**",
-         format_delta(b['low_1pct_fps'], o['low_1pct_fps'], 'FPS', lower_better=False, precision=1)),
-        ("5% Low Framerate", f"{b['low_5pct_fps']:.1f} FPS", f"**{o['low_5pct_fps']:.1f} FPS**",
-         format_delta(b['low_5pct_fps'], o['low_5pct_fps'], 'FPS', lower_better=False, precision=1)),
-        ("Minimum Framerate", f"{b['min_fps']:.1f} FPS", f"**{o['min_fps']:.1f} FPS**",
-         format_delta(b['min_fps'], o['min_fps'], 'FPS', lower_better=False, precision=1)),
-        ("Average Frametime", f"{b['ft_mean']:.3f} ms", f"**{o['ft_mean']:.3f} ms ({o['ft_mean']*1000:.0f} µs)**",
-         format_delta(b['ft_mean'], o['ft_mean'], 'ms', lower_better=True, precision=3)),
-        ("Frametime Jitter / Std Dev ($\\sigma$)", f"{b['ft_jitter_sigma']:.3f} ms ({b['ft_jitter_sigma']*1000:.1f} µs)", f"**{o['ft_jitter_sigma']:.3f} ms ({o['ft_jitter_sigma']*1000:.1f} µs)**",
-         format_delta(b['ft_jitter_sigma'], o['ft_jitter_sigma'], 'ms', lower_better=True, precision=3)),
-        ("Frame-to-Frame Ripple (Mean $\\Delta t$)", f"{b['ft_ripple_delta']:.3f} ms ({b['ft_ripple_delta']*1000:.1f} µs)", f"**{o['ft_ripple_delta']:.3f} ms ({o['ft_ripple_delta']*1000:.1f} µs)**",
-         format_delta(b['ft_ripple_delta'], o['ft_ripple_delta'], 'ms', lower_better=True, precision=3)),
-        ("Frametime 99th Percentile (p99)", f"{b['ft_p99']:.3f} ms", f"**{o['ft_p99']:.3f} ms**",
-         format_delta(b['ft_p99'], o['ft_p99'], 'ms', lower_better=True, precision=3)),
-        ("Frametime 99.9th Percentile (p99.9)", f"{b['ft_p99_9']:.3f} ms", f"**{o['ft_p99_9']:.3f} ms**",
-         format_delta(b['ft_p99_9'], o['ft_p99_9'], 'ms', lower_better=True, precision=3)),
-        ("Maximum Frametime Spike", f"{b['ft_max']:.3f} ms", f"**{o['ft_max']:.3f} ms**",
-         format_delta(b['ft_max'], o['ft_max'], 'ms', lower_better=True, precision=3)),
-        ("Spikes $\\ge$ 1.0 ms across 60s", f"{b['spikes_1ms']:,} frames ({b['spikes_1ms']/b['total_frames']*100:.1f}%)", f"**{o['spikes_1ms']:,} frames**",
-         format_delta(b['spikes_1ms'], o['spikes_1ms'], 'frames', lower_better=True, precision=0)),
-        ("Spikes $\\ge$ 5.0 ms across 60s", f"{b['spikes_5ms']:,} spikes", f"**{o['spikes_5ms']:,} spikes**",
-         format_delta(b['spikes_5ms'], o['spikes_5ms'], 'spikes', lower_better=True, precision=0)),
+        ("평균 프레임레이트 (Average Framerate)", f"**{d['avg_fps']:.1f} FPS**"),
+        ("최고 순간 프레임 (Peak Instantaneous FPS)", f"**{d['peak_fps']:.1f} FPS**"),
+        ("하위 1% 프레임 (1% Low Framerate)", f"**{d['low_1pct_fps']:.1f} FPS**"),
+        ("하위 5% 프레임 (5% Low Framerate)", f"**{d['low_5pct_fps']:.1f} FPS**"),
+        ("최저 프레임 (Minimum Framerate)", f"**{d['min_fps']:.1f} FPS**"),
+        ("평균 프레임타임 (Average Frametime)", f"**{d['ft_mean']:.3f} ms ({d['ft_mean']*1000:.0f} µs)**"),
+        ("프레임타임 중앙값 (Median p50)", f"**{d['ft_p50']:.3f} ms**"),
+        ("프레임타임 상위 95% (p95 Frametime)", f"**{d['ft_p95']:.3f} ms**"),
+        ("프레임타임 상위 99% (p99 Frametime)", f"**{d['ft_p99']:.3f} ms**"),
+        ("프레임타임 상위 99.9% (p99.9 Frametime)", f"**{d['ft_p99_9']:.3f} ms**"),
+        ("프레임타임 표준편차 (Jitter $\\sigma$)", f"**{d['ft_jitter_sigma']:.3f} ms ({d['ft_jitter_sigma']*1000:.1f} µs)**"),
+        ("연속 프레임 간 리플 (Frame Ripple $\\Delta t$)", f"**{d['ft_ripple_delta']:.3f} ms ({d['ft_ripple_delta']*1000:.1f} µs)**"),
+        ("최대 프레임타임 튐 (Max Frametime Spike)", f"**{d['ft_max']:.3f} ms**"),
+        ("디스플레이 지연 시간 (Display Latency Mean)", f"**{d['disp_lat_mean']:.3f} ms**"),
+        ("디스플레이 지연 시간 상위 99% (Display Latency p99)", f"**{d['disp_lat_p99']:.3f} ms**"),
+        ("CPU 연산 시간 (CPU Submission Time Mean)", f"**{d['cpu_busy_mean']:.3f} ms**"),
+        ("CPU 연산 시간 상위 99% (CPU Submission Time p99)", f"**{d['cpu_busy_p99']:.3f} ms**"),
+        ("GPU 실행 시간 (GPU Execution Time Mean)", f"**{d['gpu_time_mean']:.3f} ms**"),
+        ("GPU 실행 시간 상위 99% (GPU Execution Time p99)", f"**{d['gpu_time_p99']:.3f} ms**"),
+        ("GPU 지연 시간 (GPU Latency Mean)", f"**{d['gpu_lat_mean']:.3f} ms**"),
+        ("GPU 지연 시간 상위 99% (GPU Latency p99)", f"**{d['gpu_lat_p99']:.3f} ms**"),
+        ("1.0ms 이상 스파이크 프레임 수 (Spikes >= 1.0ms)", f"**{d['spikes_1ms']:,}회 ({d['spikes_1ms']/d['total_frames']*100:.3f}%)**"),
+        ("5.0ms 이상 프레임 지연 횟수 (Spikes >= 5.0ms)", f"**{d['spikes_5ms']:,}회**"),
     ]
 
-    for metric, base_val, opt_val, delta in rows:
-        print(f"| **{metric}** | {base_val} | {opt_val} | {delta} |")
+    for metric, val in rows:
+        print(f"| **{metric}** | {val} |")
 
 
 def main():
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-
-    if len(sys.argv) == 3:
-        b = load_telemetry(sys.argv[1])
-        o = load_telemetry(sys.argv[2])
-        print_comparison_table(b, o)
-    elif len(sys.argv) == 2:
-        d = load_telemetry(sys.argv[1])
-        print(f"\n### PresentMon Telemetry Summary: {d['filename']}\n")
-        print(f"- Total Frames: {d['total_frames']:,}")
-        print(f"- Duration: {d['duration']:.2f} s")
-        print(f"- Average FPS: {d['avg_fps']:.2f} FPS")
-        print(f"- Peak Instantaneous FPS: {d['peak_fps']:.1f} FPS")
-        print(f"- 1% Low FPS: {d['low_1pct_fps']:.1f} FPS")
-        print(f"- 5% Low FPS: {d['low_5pct_fps']:.1f} FPS")
-        print(f"- Min FPS: {d['min_fps']:.1f} FPS")
-        print(f"- Mean Frametime: {d['ft_mean']:.4f} ms")
-        print(f"- Frametime Median (p50): {d['ft_p50']:.4f} ms")
-        print(f"- Frametime p99: {d['ft_p99']:.4f} ms")
-        print(f"- Frametime p99.9: {d['ft_p99_9']:.4f} ms")
-        print(f"- Max Spike: {d['ft_max']:.4f} ms")
-        print(f"- Frametime Jitter (σ): {d['ft_jitter_sigma']:.4f} ms ({d['ft_jitter_sigma']*1000:.1f} µs)")
-        print(f"- Inter-frame Ripple (Δt): {d['ft_ripple_delta']:.4f} ms ({d['ft_ripple_delta']*1000:.1f} µs)")
-        print(f"- Mean Display Latency: {d['disp_lat_mean']:.4f} ms")
-        print(f"- Mean CPU Busy Time: {d['cpu_busy_mean']:.4f} ms")
-        print(f"- Mean GPU Execution Time: {d['gpu_time_mean']:.4f} ms")
-        print(f"- Spikes >= 1.0ms: {d['spikes_1ms']} frames")
-        print(f"- Spikes >= 5.0ms: {d['spikes_5ms']} frames")
-    else:
-        # Default mode: compare default archived datasets in Captures directory
-        f_legacy = os.path.join(script_dir, 'pmcap-KartRider.exe-261106-075244.csv')
-        f_8777 = os.path.join(script_dir, 'pmcap-KartRider.exe-261106-085359.csv')
-
-        if os.path.exists(f_legacy) and os.path.exists(f_8777):
-            b = load_telemetry(f_legacy)
-            o = load_telemetry(f_8777)
-            print_comparison_table(b, o, title="KartRider x64: Legacy Runtime vs DxWrapper v1.9.8777.25")
+    if len(sys.argv) < 2:
+        # If no arguments provided, guide usage or check default file in script dir
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        default_file = os.path.join(script_dir, 'pmcap-KartRider.exe-261106-085359.csv')
+        if os.path.exists(default_file):
+            print(f"[Notice] 인수가 지정되지 않아 최신 캡처 기본 파일({os.path.basename(default_file)})을 분석합니다.")
+            print(f"사용법: python {os.path.basename(__file__)} <분석할_PresentMon_데이터.csv>\n")
+            target_path = default_file
         else:
-            print("Usage:")
-            print("  python analyze_telemetry.py <capture.csv>")
-            print("  python analyze_telemetry.py <baseline.csv> <optimized.csv>")
+            print(f"사용법: python {os.path.basename(__file__)} <분석할_PresentMon_데이터.csv>")
+            sys.exit(1)
+    else:
+        target_path = sys.argv[1]
+
+    d = load_telemetry(target_path)
+    print_single_telemetry(d)
 
 
 if __name__ == '__main__':
