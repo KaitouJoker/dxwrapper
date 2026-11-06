@@ -27,6 +27,7 @@ Below is the verified 60-second PresentMon telemetry benchmark in KartRider x64,
 The raw telemetry datasets referenced in this comparison are archived in the [`Captures/`](Captures/) directory:
 - **Legacy Runtime (`d3dx9_43.dll`) Raw Capture**: [`Captures/pmcap-KartRider.exe-261106-075244.csv`](Captures/pmcap-KartRider.exe-261106-075244.csv) ([Summary](Captures/pmcap-KartRider.exe-261106-075244-stats.csv))
 - **DxWrapper x64 General (`d3d9.dll` v1.9.8777.25) Raw Capture**: [`Captures/pmcap-KartRider.exe-261106-085359.csv`](Captures/pmcap-KartRider.exe-261106-085359.csv) ([Summary](Captures/pmcap-KartRider.exe-261106-085359-stats.csv))
+- **Analysis Script**: Run [`python Captures/analyze_telemetry.py`](Captures/analyze_telemetry.py) to independently compute and reproduce all benchmark metrics from the raw CSV data.
 
 | Metric | Legacy Runtime (`d3dx9_43.dll`) | DxWrapper x64 General (`d3d9.dll`) | Delta (Change) |
 | :--- | :---: | :---: | :--- |
