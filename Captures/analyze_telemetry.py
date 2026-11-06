@@ -149,33 +149,33 @@ def print_single_telemetry(d):
     print("| :--- | :---: |")
 
     rows = [
-        ("평균 프레임레이트 (Average Framerate)", f"**{d['avg_fps']:.1f} FPS**"),
-        ("최고 순간 프레임 (Peak Instantaneous FPS)", f"**{d['peak_fps']:.1f} FPS**"),
-        ("하위 1% 프레임 (1% Low Framerate)", f"**{d['low_1pct_fps']:.1f} FPS**"),
-        ("하위 5% 프레임 (5% Low Framerate)", f"**{d['low_5pct_fps']:.1f} FPS**"),
-        ("최저 프레임 (Minimum Framerate)", f"**{d['min_fps']:.1f} FPS**"),
-        ("평균 프레임타임 (Average Frametime)", f"**{d['ft_mean']:.3f} ms**"),
-        ("프레임타임 중앙값 (Median p50)", f"**{d['ft_p50']:.3f} ms**"),
-        ("프레임타임 상위 95% (p95 Frametime)", f"**{d['ft_p95']:.3f} ms**"),
-        ("프레임타임 상위 99% (p99 Frametime)", f"**{d['ft_p99']:.3f} ms**"),
-        ("프레임타임 상위 99.9% (p99.9 Frametime)", f"**{d['ft_p99_9']:.3f} ms**"),
-        ("프레임타임 표준편차 (Jitter $\\sigma$)", f"**{d['ft_jitter_sigma']:.3f} ms**"),
-        ("연속 프레임 간 리플 (Frame Ripple $\\Delta t$)", f"**{d['ft_ripple_delta']:.3f} ms**"),
-        ("최대 프레임타임 튐 (Max Frametime Spike)", f"**{d['ft_max']:.3f} ms**"),
-        ("디스플레이 지연 시간 (Display Latency Mean)", f"**{d['disp_lat_mean']:.3f} ms**"),
-        ("디스플레이 지연 시간 상위 99% (Display Latency p99)", f"**{d['disp_lat_p99']:.3f} ms**"),
-        ("CPU 연산 시간 (CPU Submission Time Mean)", f"**{d['cpu_busy_mean']:.3f} ms**"),
-        ("CPU 연산 시간 상위 99% (CPU Submission Time p99)", f"**{d['cpu_busy_p99']:.3f} ms**"),
-        ("GPU 실행 시간 (GPU Execution Time Mean)", f"**{d['gpu_time_mean']:.3f} ms**"),
-        ("GPU 실행 시간 상위 99% (GPU Execution Time p99)", f"**{d['gpu_time_p99']:.3f} ms**"),
-        ("GPU 지연 시간 (GPU Latency Mean)", f"**{d['gpu_lat_mean']:.3f} ms**"),
-        ("GPU 지연 시간 상위 99% (GPU Latency p99)", f"**{d['gpu_lat_p99']:.3f} ms**"),
-        ("1.0ms 이상 스파이크 프레임 수 (Spikes >= 1.0ms)", f"**{d['spikes_1ms']:,}회 ({d['spikes_1ms']/d['total_frames']*100:.3f}%)**"),
-        ("5.0ms 이상 프레임 지연 횟수 (Spikes >= 5.0ms)", f"**{d['spikes_5ms']:,}회**"),
+        ("평균 프레임레이트 (Average Framerate)", f"{d['avg_fps']:.1f} FPS"),
+        ("최고 순간 프레임 (Peak Instantaneous FPS)", f"{d['peak_fps']:.1f} FPS"),
+        ("하위 1% 프레임 (1% Low Framerate)", f"{d['low_1pct_fps']:.1f} FPS"),
+        ("하위 5% 프레임 (5% Low Framerate)", f"{d['low_5pct_fps']:.1f} FPS"),
+        ("최저 프레임 (Minimum Framerate)", f"{d['min_fps']:.1f} FPS"),
+        ("평균 프레임타임 (Average Frametime)", f"{d['ft_mean']:.3f} ms"),
+        ("프레임타임 중앙값 (Median p50)", f"{d['ft_p50']:.3f} ms"),
+        ("프레임타임 상위 95% (p95 Frametime)", f"{d['ft_p95']:.3f} ms"),
+        ("프레임타임 상위 99% (p99 Frametime)", f"{d['ft_p99']:.3f} ms"),
+        ("프레임타임 상위 99.9% (p99.9 Frametime)", f"{d['ft_p99_9']:.3f} ms"),
+        ("프레임타임 표준편차 (Jitter $\\sigma$)", f"{d['ft_jitter_sigma']:.3f} ms"),
+        ("연속 프레임 간 리플 (Frame Ripple $\\Delta t$)", f"{d['ft_ripple_delta']:.3f} ms"),
+        ("최대 프레임타임 튐 (Max Frametime Spike)", f"{d['ft_max']:.3f} ms"),
+        ("디스플레이 지연 시간 (Display Latency Mean)", f"{d['disp_lat_mean']:.3f} ms"),
+        ("디스플레이 지연 시간 상위 99% (Display Latency p99)", f"{d['disp_lat_p99']:.3f} ms"),
+        ("CPU 연산 시간 (CPU Submission Time Mean)", f"{d['cpu_busy_mean']:.3f} ms"),
+        ("CPU 연산 시간 상위 99% (CPU Submission Time p99)", f"{d['cpu_busy_p99']:.3f} ms"),
+        ("GPU 실행 시간 (GPU Execution Time Mean)", f"{d['gpu_time_mean']:.3f} ms"),
+        ("GPU 실행 시간 상위 99% (GPU Execution Time p99)", f"{d['gpu_time_p99']:.3f} ms"),
+        ("GPU 지연 시간 (GPU Latency Mean)", f"{d['gpu_lat_mean']:.3f} ms"),
+        ("GPU 지연 시간 상위 99% (GPU Latency p99)", f"{d['gpu_lat_p99']:.3f} ms"),
+        ("1.0ms 이상 스파이크 프레임 수 (Spikes >= 1.0ms)", f"{d['spikes_1ms']:,}회 ({d['spikes_1ms']/d['total_frames']*100:.3f}%)"),
+        ("5.0ms 이상 프레임 지연 횟수 (Spikes >= 5.0ms)", f"{d['spikes_5ms']:,}회"),
     ]
 
     for metric, val in rows:
-        print(f"| **{metric}** | {val} |")
+        print(f"| {metric} | {val} |")
 
 
 def main():
